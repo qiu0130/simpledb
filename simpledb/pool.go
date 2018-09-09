@@ -1,16 +1,14 @@
 package simpledb
 
 import (
-	"time"
 	"net"
+	"time"
 )
 
 type Pool struct {
-
-	MaxConn uint32
+	MaxConn  uint32
 	IdleConn uint32
 
 	LefTimeConn time.Duration
-	FreeConn []*net.Conn
+	FreeConn    []*net.Conn
 }
-

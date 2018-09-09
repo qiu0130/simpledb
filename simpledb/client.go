@@ -1,39 +1,44 @@
 package simpledb
 
 import (
-	"net"
-	"time"
-	"strconv"
 	"bufio"
 	"fmt"
+	"net"
+	"strconv"
+	"time"
+	"simpledb/simpledb/config"
+	"log"
 )
 
 const (
 	defaultTimeout = 1000
 )
 
-
+var clientConfig *config.Config
 
 type Client struct {
 	Host string
 	Port int
-	conn *Conn
+	conn net.Conn
 
-	rb *ReadBuffer
-	wb *WriteBuffer
+	rb             *ReadBuffer
+	wb             *WriteBuffer
 	ConnectTimeout time.Duration
-	readTimeout time.Duration
-	writeTimeout time.Duration
+	readTimeout    time.Duration
+	writeTimeout   time.Duration
 
 	command *Command
-	argv int
-	argc *Resp
-	reply *Resp
+	argv    int
+	argc    *Resp
+	reply   *Resp
 }
 
-
 func init() {
-
+	var err error
+	clientConfig, err = config.NewConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
 func DefaultClient() *Client {
@@ -47,15 +52,19 @@ func DefaultClient() *Client {
 	return cli
 }
 
-func New(host string, port int, timeout time.Duration) *Client {
+func NewClient() *Client {
 
 	return &Client{
-		Host: host,
-		Port: port,
-		ConnectTimeout: timeout,
-		readTimeout: timeout,
-		writeTimeout: timeout,
+		Host:           clientConfig.Client.Host,
+		Port:           clientConfig.Client.Port,
+		ConnectTimeout: clientConfig.Client.ConnectTimeout,
+		readTimeout:    clientConfig.Client.ReadTimeout,
+		writeTimeout:   clientConfig.Client.WriteTimeout,
 	}
+}
+
+func (c *Client) Close() error {
+	return c.Close()
 }
 
 func (c *Client) execute(args ...interface{}) (*Resp, error) {
@@ -82,7 +91,6 @@ func (c *Client) execute(args ...interface{}) (*Resp, error) {
 	return reply, nil
 }
 
-
 func (c *Client) connect() error {
 
 	addr := c.Host + ":" + strconv.Itoa(c.Port)
@@ -101,27 +109,22 @@ func (c *Client) connect() error {
 
 	c.rb = &ReadBuffer{bufio.NewReader(conn), c.readTimeout}
 	c.wb = &WriteBuffer{bufio.NewWriter(conn), c.writeTimeout}
+	c.conn = conn
 	return nil
 }
 
 func (c *Client) writeArgs(args ...interface{}) (int, error) {
-	return 	c.wb.WriteArgs(args)
+	return c.wb.WriteArgs(args)
 }
 func (c *Client) readRely() (*Resp, error) {
 	return c.rb.HandleStream()
 }
 
-
-
-func (c *Client) Set(args ...interface{}) {
-	c.execute(args)
+func (c *Client) Set(args ...interface{}) (*Resp, error) {
+	return c.execute("SET", args[0], args[1])
 }
 
-func (c *Client) Get(args ...interface{}) {
-	c.execute(args)
-}
-
-func (c *Client) Lpush(args ...interface{}) {
-	c.execute()
+func (c *Client) Get(args ...interface{}) (*Resp, error) {
+	return c.execute("GET", args)
 }
 

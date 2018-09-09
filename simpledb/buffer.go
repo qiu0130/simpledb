@@ -6,8 +6,9 @@ import (
 	"strconv"
 	"time"
 )
+
 const (
-	maxBulkLen = 100
+	maxBulkSize = 1000
 )
 
 type WriteBuffer struct {
@@ -19,7 +20,6 @@ type ReadBuffer struct {
 	buf     *bufio.Reader
 	timeout time.Duration
 }
-
 
 func (w *WriteBuffer) Flush() error {
 	return w.buf.Flush()
@@ -63,7 +63,7 @@ func (r *ReadBuffer) HandleStream() (*Resp, error) {
 		return nil, err
 	}
 	switch pos {
-		// +Ok\r\n
+	// +Ok\r\n
 	case TypeString:
 		return NewString(buf), nil
 		// -Error message\r\n
@@ -113,12 +113,12 @@ func (w *WriteBuffer) WriteArgs(args ...interface{}) (int, error) {
 		case int64:
 			return w.WriteInt64(arg)
 		case string:
-			if len(arg) > maxBulkLen {
+			if len(arg) > maxBulkSize {
 				return w.WriteBulkString(arg)
 			}
 			return w.WriteString(arg)
 		case []byte:
-			if len(arg) > maxBulkLen {
+			if len(arg) > maxBulkSize {
 				return w.WriteBulkString(string(arg))
 			}
 			return w.WriteString(string(arg))

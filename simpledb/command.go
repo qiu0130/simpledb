@@ -1,32 +1,34 @@
 package simpledb
 
 import (
-	"strings"
 	"errors"
+	"strings"
 )
-
 
 const (
 	R = iota // only read command
-	W       // only write command
-	A      // only admin command
+	W        // only write command
+	A        // only admin command
 )
+
 var (
-	emptyCommand = errors.New("empty command")
-	lackCommand = errors.New("lack of command")
+	emptyCommand   = errors.New("empty command")
+	lackCommand    = errors.New("lack of command")
 	invalidCommand = errors.New("invalid command")
 )
+
+// handle command process, error mean the function runtime error
 type CommandProcess func(s *SimpleServer, args ...interface{}) error
 
 type Command struct {
-	Name string
-	Arity int  // limit argument, > N
-	Flag int  // client or server
-	SFlag string // r, w, a
+	Name    string
+	Arity   int            // limit argument, > N
+	Flag    int            // client or server
+	SFlag   string         // r, w, a
 	Process CommandProcess // handle command function
 }
 
-var  CommandTable []*Command
+var CommandTable []*Command
 
 func init() {
 	register("SET", 3, 1, Set)
@@ -70,7 +72,7 @@ func CheckCommand(args ...interface{}) (*Command, error) {
 			return nil, lackCommand
 		}
 		if commandLen != command.Arity {
-			return nil, invalidCommand
+			return nil, lackCommand
 		}
 		return command, nil
 	}

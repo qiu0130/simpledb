@@ -1,12 +1,11 @@
 package simpledb
 
-// clone from redis protocol detailed in https://redis.io/topics/protocol
+// following redis protocol detailed in https://redis.io/topics/protocol
 // "+" mean Simple Strings
 // "-" mean Errors
 // ":" mean Integers
 // "$" mean Bulk Strings
 // "*" mean Arrays
-
 
 import "fmt"
 
