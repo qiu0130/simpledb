@@ -15,7 +15,7 @@ func TestCheckCommand(t *testing.T) {
 	}
 	for _, test := range tests {
 
-		command, err := CheckCommand(test.command, test.key, test.value)
+		command, err := CheckCommand(test.command, 3)
 		if err != nil {
 			t.Error(err)
 		} else {

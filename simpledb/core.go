@@ -104,11 +104,11 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	server := NewServer()
-	server.Run()
 }
 
 func (s *SimpleServer) Run() {
+	server := NewServer()
+	server.Run()
 	s.listen()
 }
 
@@ -143,10 +143,10 @@ func (s *SimpleServer) listen() error {
 			log.Printf("accept from: [%s][%s]", conn.RemoteAddr().Network(), conn.RemoteAddr().String())
 
 			if s.writeTimeout == 0 {
-				s.writeTimeout = defaultTimeout * time.Microsecond
+				s.writeTimeout = defaultTimeout * time.Second
 			}
 			if s.readTimeout == 0 {
-				s.writeTimeout = defaultTimeout * time.Microsecond
+				s.writeTimeout = defaultTimeout * time.Second
 			}
 			conn.SetWriteDeadline(time.Now().Add(s.writeTimeout))
 			conn.SetReadDeadline(time.Now().Add(s.readTimeout))
@@ -169,13 +169,19 @@ func handleProcess(s *SimpleServer) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	command, err := CheckCommand(args)
-	if err != nil {
-		s.wb.WriteArgs(err)
-		s.wb.Flush()
-		return
+
+	if len(args) > 0 {
+		if name, ok := args[0].(string); ok {
+			command, err := CheckCommand(name, len(args)+1)
+			if err != nil {
+				s.wb.WriteArgs(err)
+				s.wb.Flush()
+				return
+			}
+			go command.Process(s, args)
+		}
 	}
-	go command.Process(s, args)
+
 }
 
 func (s *SimpleServer) readResponse() (args []interface{}, err error) {

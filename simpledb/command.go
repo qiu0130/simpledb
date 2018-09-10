@@ -14,7 +14,7 @@ const (
 var (
 	emptyCommand   = errors.New("empty command")
 	lackCommand    = errors.New("lack of command")
-	invalidCommand = errors.New("invalid command")
+	invalidCommand = errors.New("lack of arguments")
 )
 
 // handle command process, error mean the function runtime error
@@ -60,22 +60,18 @@ func LookupCommand(name string) *Command {
 	return nil
 }
 
-func CheckCommand(args ...interface{}) (*Command, error) {
+func CheckCommand(name string, arity int) (*Command, error) {
 
-	commandLen := len(args)
-	if commandLen == 0 {
+	if name == "" {
 		return nil, emptyCommand
 	}
-	if name, ok := args[0].(string); ok {
-		command := LookupCommand(name)
-		if command == nil {
-			return nil, lackCommand
-		}
-		if commandLen != command.Arity {
-			return nil, lackCommand
-		}
-		return command, nil
+	command := LookupCommand(name)
+	if command == nil {
+		return nil, lackCommand
 	}
+	if arity != command.Arity {
+		return nil, invalidCommand
+	}
+	return command, nil
 
-	return nil, invalidCommand
 }

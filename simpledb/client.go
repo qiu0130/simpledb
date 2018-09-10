@@ -39,7 +39,6 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
 func DefaultClient() *Client {
 
@@ -67,10 +66,10 @@ func (c *Client) Close() error {
 	return c.Close()
 }
 
-func (c *Client) execute(args ...interface{}) (*Resp, error) {
+func (c *Client) execute(name string, args ...interface{}) (*Resp, error) {
 	// lookup commandTable and
 	// check argument of quantity
-	command, err := CheckCommand(args)
+	command, err := CheckCommand(name, len(args)+1)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +78,7 @@ func (c *Client) execute(args ...interface{}) (*Resp, error) {
 		return nil, err
 	}
 
-	_, err = c.writeArgs(command.Name, args)
+	err = c.writeArgsWithFlush(command.Name, args)
 	if err != nil {
 		return nil, fmt.Errorf("conn write buffer fail %s", err.Error())
 	}
@@ -99,10 +98,10 @@ func (c *Client) connect() error {
 		return fmt.Errorf("connect addr %s fail %s", addr, err.Error())
 	}
 	if c.writeTimeout == 0 {
-		c.writeTimeout = defaultTimeout * time.Microsecond
+		c.writeTimeout = defaultTimeout * time.Second
 	}
 	if c.readTimeout == 0 {
-		c.writeTimeout = defaultTimeout * time.Microsecond
+		c.writeTimeout = defaultTimeout * time.Second
 	}
 	conn.SetWriteDeadline(time.Now().Add(c.writeTimeout))
 	conn.SetReadDeadline(time.Now().Add(c.readTimeout))
@@ -113,9 +112,15 @@ func (c *Client) connect() error {
 	return nil
 }
 
-func (c *Client) writeArgs(args ...interface{}) (int, error) {
-	return c.wb.WriteArgs(args)
+func (c *Client) writeArgsWithFlush(args ...interface{}) (err error) {
+	_, err = c.wb.WriteArgs(args)
+	if err != nil {
+		return
+	}
+	err = c.wb.Flush()
+	return
 }
+
 func (c *Client) readRely() (*Resp, error) {
 	return c.rb.HandleStream()
 }

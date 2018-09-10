@@ -42,7 +42,7 @@ func (w *WriteBuffer) WriteString(s string) (int, error) {
 }
 
 func (w *WriteBuffer) WriteError(e error) (int, error) {
-	return w.buf.WriteString(fmt.Sprintf("-%s", e.Error()))
+	return w.buf.WriteString(fmt.Sprintf("-%s\r\n", e.Error()))
 }
 
 func (w *WriteBuffer) WriteArray(i int) (int, error) {
