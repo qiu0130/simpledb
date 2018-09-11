@@ -14,5 +14,5 @@ client:
   host: 127.0.0.1
   port: 38391
   connect_timeout: 5
-  read_timeout: 3
-  write_timeut: 3
+  read_timeout: 10
+  write_timeut: 10

@@ -42,8 +42,8 @@ Misc:
  */
 
 var (
-	keyErr = errors.New("invalid key, not a string")
-	KvErr  = errors.New("empty kv")
+	keyErr = errors.New("not a string")
+	kvErr  = errors.New("empty dict")
 )
 var serverConfig *config.Config
 
@@ -71,7 +71,7 @@ func (d *Dict) get(k string) (interface{}, error) {
 	if v, ok := d.value[k]; ok {
 		return v, nil
 	}
-	return nil, KvErr
+	return nil, kvErr
 }
 
 // hash command
@@ -108,8 +108,7 @@ func init() {
 
 func (s *SimpleServer) Run() {
 	server := NewServer()
-	server.Run()
-	s.listen()
+	server.listen()
 }
 
 func NewServer() *SimpleServer {
@@ -124,7 +123,6 @@ func NewServer() *SimpleServer {
 }
 
 func (s *SimpleServer) Close() error {
-
 	return s.conn.Close()
 }
 
@@ -143,13 +141,13 @@ func (s *SimpleServer) listen() error {
 			log.Printf("accept from: [%s][%s]", conn.RemoteAddr().Network(), conn.RemoteAddr().String())
 
 			if s.writeTimeout == 0 {
-				s.writeTimeout = defaultTimeout * time.Second
+				s.writeTimeout = defaultTimeout
 			}
 			if s.readTimeout == 0 {
-				s.writeTimeout = defaultTimeout * time.Second
+				s.writeTimeout = defaultTimeout
 			}
-			conn.SetWriteDeadline(time.Now().Add(s.writeTimeout))
-			conn.SetReadDeadline(time.Now().Add(s.readTimeout))
+			conn.SetWriteDeadline(time.Now().Add(s.writeTimeout*time.Second))
+			conn.SetReadDeadline(time.Now().Add(s.readTimeout*time.Second))
 			s.rb = &ReadBuffer{bufio.NewReader(conn), s.readTimeout}
 			s.wb = &WriteBuffer{bufio.NewWriter(conn), s.writeTimeout}
 			s.conn = conn
@@ -157,7 +155,7 @@ func (s *SimpleServer) listen() error {
 			go handleProcess(s)
 		}
 		if err != nil {
-			log.Println("accept err ", err)
+			log.Fatal("accept err: ", err)
 			return err
 		}
 	}
@@ -165,24 +163,27 @@ func (s *SimpleServer) listen() error {
 
 func handleProcess(s *SimpleServer) {
 
-	args, err := s.readResponse()
+	resp, err := s.rb.HandleStream()
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	if len(args) > 0 {
-		if name, ok := args[0].(string); ok {
-			command, err := CheckCommand(name, len(args)+1)
-			if err != nil {
-				s.wb.WriteArgs(err)
-				s.wb.Flush()
-				return
-			}
-			go command.Process(s, args)
+	log.Print(resp.Type)
+	if resp.Type == TypeArray {
+		arity := len(resp.Array)
+		name := string(resp.Array[0].Value)
+		log.Print(name, arity)
+		command, err := CheckCommand(name, arity)
+		if err != nil {
+			log.Fatal(err)
 		}
+		go command.Process(s, resp)
+	} else {
+		s.replyOk()
 	}
 
 }
+
+
 
 func (s *SimpleServer) readResponse() (args []interface{}, err error) {
 
@@ -209,12 +210,18 @@ func (s *SimpleServer) readResponse() (args []interface{}, err error) {
 			}
 			args = append(args, element)
 		}
+		return args, nil
 	}
 	return nil, fmt.Errorf("unknown type")
 }
 
-func (s *SimpleServer) writeArgs(args ...interface{}) (int, error) {
-	return s.wb.WriteArgs(args)
+func (s *SimpleServer) writeArgs(args ...interface{}) (err error) {
+	_, err = s.wb.WriteArgs(args)
+	if err != nil {
+		return
+	}
+	err = s.flush()
+	return
 }
 
 func (s *SimpleServer) replyOk() (err error) {
@@ -233,36 +240,59 @@ func (s *SimpleServer) flush() (err error) {
 	return s.wb.Flush()
 }
 
-func Set(s *SimpleServer, args ...interface{}) error {
-	if s.dict.value == nil {
+func Set(s *SimpleServer, resp *Resp) error {
+	if s.dict == nil {
 		s.dict = &Dict{
 			mu:    sync.RWMutex{},
 			value: make(map[string]interface{}),
 		}
 	}
 
-	key, ok := args[0].(string)
-	if !ok {
-		return keyErr
-	}
-	s.dict.set(key, args[1])
+	key := string(resp.Array[1].Value)
+	value := resp.Array[2].Value
+	s.dict.set(key, value)
 
 	return s.replyOk()
 }
 
-func Get(s *SimpleServer, args ...interface{}) error {
-	if s.dict.value == nil {
-		return KvErr
+func Get(s *SimpleServer, resp *Resp) error {
+	if s.dict == nil {
+		return s.writeArgs(kvErr)
 	}
-	key, ok := args[0].(string)
-	if !ok {
-		return keyErr
-	}
+
+	key := string(resp.Array[1].Value)
 	value, err := s.dict.get(key)
-	if err == nil {
-		return err
+
+	if err != nil {
+		return s.writeArgs(err)
 	}
-	s.writeArgs(value)
-	return nil
+
+	return s.writeArgs(value)
+}
+
+func Append(s *SimpleServer, resp *Resp) error {
+	if s.dict == nil {
+		s.dict = &Dict{
+			mu:    sync.RWMutex{},
+			value: make(map[string]interface{}),
+		}
+	}
+
+	key := string(resp.Array[1].Value)
+	value := string(resp.Array[2].Value)
+
+	v, err := s.dict.get(key)
+	if err != nil {
+		vv, ok := v.(string)
+		if !ok {
+			return s.writeArgs(keyErr)
+		}
+		newValue := vv + value
+		s.dict.set(key, newValue)
+		return s.writeArgs(newValue)
+	} else {
+		s.dict.set(key, value)
+		return s.writeArgs(value)
+	}
 
 }

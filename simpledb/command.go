@@ -18,7 +18,7 @@ var (
 )
 
 // handle command process, error mean the function runtime error
-type CommandProcess func(s *SimpleServer, args ...interface{}) error
+type CommandProcess func(s *SimpleServer, resp *Resp) error
 
 type Command struct {
 	Name    string

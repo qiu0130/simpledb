@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	defaultTimeout = 1000
+	defaultTimeout = 3
 )
 
 var clientConfig *config.Config
@@ -28,8 +28,6 @@ type Client struct {
 	writeTimeout   time.Duration
 
 	command *Command
-	argv    int
-	argc    *Resp
 	reply   *Resp
 }
 
@@ -66,22 +64,26 @@ func (c *Client) Close() error {
 	return c.Close()
 }
 
-func (c *Client) execute(name string, args ...interface{}) (*Resp, error) {
+func (c *Client) execute(args ...interface{}) (*Resp, error) {
 	// lookup commandTable and
 	// check argument of quantity
-	command, err := CheckCommand(name, len(args)+1)
-	if err != nil {
+	log.Print(args)
+	if name, ok := args[0].(string); ok {
+		_, err := CheckCommand(name, len(args))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err := c.connect(); err != nil {
 		return nil, err
 	}
 
-	if err = c.connect(); err != nil {
-		return nil, err
-	}
-
-	err = c.writeArgsWithFlush(command.Name, args)
+	err := c.writeArgsWithFlush(args...)
 	if err != nil {
 		return nil, fmt.Errorf("conn write buffer fail %s", err.Error())
 	}
+
 	reply, err := c.readRely()
 	if err != nil {
 		return nil, fmt.Errorf("reply read buffer fail %s", err.Error())
@@ -98,13 +100,13 @@ func (c *Client) connect() error {
 		return fmt.Errorf("connect addr %s fail %s", addr, err.Error())
 	}
 	if c.writeTimeout == 0 {
-		c.writeTimeout = defaultTimeout * time.Second
+		c.writeTimeout = defaultTimeout
 	}
 	if c.readTimeout == 0 {
-		c.writeTimeout = defaultTimeout * time.Second
+		c.writeTimeout = defaultTimeout
 	}
-	conn.SetWriteDeadline(time.Now().Add(c.writeTimeout))
-	conn.SetReadDeadline(time.Now().Add(c.readTimeout))
+	conn.SetWriteDeadline(time.Now().Add(c.writeTimeout*time.Second))
+	conn.SetReadDeadline(time.Now().Add(c.readTimeout*time.Second))
 
 	c.rb = &ReadBuffer{bufio.NewReader(conn), c.readTimeout}
 	c.wb = &WriteBuffer{bufio.NewWriter(conn), c.writeTimeout}
@@ -113,7 +115,7 @@ func (c *Client) connect() error {
 }
 
 func (c *Client) writeArgsWithFlush(args ...interface{}) (err error) {
-	_, err = c.wb.WriteArgs(args)
+	_, err = c.wb.WriteArgs(args...)
 	if err != nil {
 		return
 	}
@@ -125,11 +127,11 @@ func (c *Client) readRely() (*Resp, error) {
 	return c.rb.HandleStream()
 }
 
-func (c *Client) Set(args ...interface{}) (*Resp, error) {
-	return c.execute("SET", args[0], args[1])
+func (c *Client) Set(key, value string) (*Resp, error) {
+	return c.execute("SET", key, value)
 }
 
-func (c *Client) Get(args ...interface{}) (*Resp, error) {
-	return c.execute("GET", args)
+func (c *Client) Get(key string) (*Resp, error) {
+	return c.execute("GET", key)
 }
 

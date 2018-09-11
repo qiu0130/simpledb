@@ -9,8 +9,13 @@ func TestNewClient(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	} else {
-		t.Logf("%+v", resp)
-		t.Logf("%+v", client.reply)
+		if resp.Type == TypeArray {
+			for _, a := range resp.Array {
+				t.Logf("%+v", string(a.Value))
+			}
+		} else {
+			t.Logf("%+v", string(resp.Value))
+		}
 	}
 
 }

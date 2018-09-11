@@ -22,9 +22,10 @@ func init() {
 
 	rb = &ReadBuffer{}
 
+	rb.buf = bufio.NewReader(&buf)
+
 }
 
-var bulkStr = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 func TestWriteBuffer_WriteInt64(t *testing.T) {
 
@@ -167,16 +168,16 @@ func TestWriteBuffer_WriteArgs(t *testing.T) {
 	} {
 		{int(1), ":1\r\n"},
 		{int64(10), ":10\r\n"},
-		{"ok", ""},
+
+		{"ok", "+ok\r\n"},
+		{"xxxxx", "$5\r\nxxxxx\r\n"},
 
 		{errors.New("fail"), "-fail\r\n"},
-		{"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "$100\r\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n"},
 		{float32(10), ":10.000000\r\n"},
-		{float64(100), "100.000000\r\n"},
+		{float64(100), ":100.000000\r\n"},
 
 		{[]byte("yes"), "+yes\r\n"},
-		{[]byte("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"), "$100\r\n"},
-
+		{[]byte("xxxxx"), "$5\r\nxxxxx\r\n"},
 
 	}
 
@@ -192,14 +193,86 @@ func TestWriteBuffer_WriteArgs(t *testing.T) {
 			t.Logf("%v, %q, %q, result: %v", test.args, string(p[:n]), test.want, string(p[:n]) == test.want)
 		}
 	}
+
+	wb.WriteArgs(1, 100, "ok", "xxxxx", []byte("yyyyy"))
+	wb.Flush()
+	want := "*5\r\n:1\r\n:100\r\n+ok\r\n$5\r\nxxxxx\r\n$5\r\nyyyyy\r\n"
+	p := make([]byte, 16*2014)
+	n, err := buf.Read(p)
+	if err != nil {
+		t.Error(err)
+	} else {
+		t.Logf("1 100 ok, xxxxx, yyyyy; %q, %q, %v",  want, string(p[:n]), want == string(p[:n]))
+	}
+
+
 }
 
 
 func TestReadBuffer_ReadLine(t *testing.T) {
 
+
+	var tests = []struct {
+		data string
+		want string
+	} {
+		{
+		":100\r\n", "100"	,
+		},
+		{
+			"+ok\r\n", "ok"	,
+		},
+		{
+			"$5\r\n", "5",
+		},
+	}
+
+	for _, test := range tests {
+		buf.WriteString(test.data)
+		pos, buf, err := rb.ReadLine()
+		if err != nil {
+			t.Error(err)
+		} else {
+			t.Logf("%v, %q, result: %v", pos, string(buf), string(buf) == test.want)
+		}
+	}
 }
 
 func TestReadBuffer_HandleStream(t *testing.T) {
+	var tests = []struct {
+		data string
+		want string
+	} {
+		{
+			":100\r\n", "100"	,
+		},
+		{
+			"+ok\r\n", "ok"	,
+		},
+		{
+			"$5\r\nxxxxx\r\n", "xxxxx",
+		},
+		{
+			"*2\r\n+ok\r\n:100\r\n", "ok",
+		},
 
+	}
+	for _, test := range tests {
+		buf.WriteString(test.data)
+		resp, err := rb.HandleStream()
+
+		if err != nil {
+			t.Error(err)
+		} else {
+			if resp.Type == TypeArray {
+				for _, arr := range resp.Array {
+					t.Logf("%v, %q", arr, string(arr.Value))
+				}
+
+			} else {
+				t.Logf("%v, %q, result: %v", resp, string(resp.Value), string(resp.Value) == test.want)
+			}
+		}
+	}
 }
 

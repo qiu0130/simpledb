@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	maxBulkSize = 1000
+	maxBulkSize = 4
 )
 
 type WriteBuffer struct {
@@ -54,7 +54,7 @@ func (r *ReadBuffer) ReadLine() (RespType, []byte, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	return RespType(buf[0]), buf[1 : len(buf)-1], nil
+	return RespType(buf[0]), buf[1:len(buf)-2], nil
 }
 
 func (r *ReadBuffer) HandleStream() (*Resp, error) {
@@ -63,7 +63,7 @@ func (r *ReadBuffer) HandleStream() (*Resp, error) {
 		return nil, err
 	}
 	switch pos {
-	// +Ok\r\n
+		// +Ok\r\n
 	case TypeString:
 		return NewString(buf), nil
 		// -Error message\r\n
@@ -78,16 +78,16 @@ func (r *ReadBuffer) HandleStream() (*Resp, error) {
 		if length < 1 {
 			return NewBulkBytes([]byte("")), nil
 		}
-		p := make([]byte, length)
-		_, err := r.buf.Read(p)
+		p := make([]byte, length+2)
+		n, err := r.buf.Read(p)
 		if err != nil {
 			return nil, err
 		}
-		return NewBulkBytes(p), nil
+		return NewBulkBytes(p[:n-2]), nil
 		// *3\r\n:1\r\n:2\r\n:3\r\n
 	case TypeArray:
 		length, _ := strconv.Atoi(string(buf))
-		array := make([]*Resp, length)
+		var  array []*Resp
 
 		for i := 0; i < length; i++ {
 			resp, err := r.HandleStream()
@@ -105,8 +105,8 @@ func (r *ReadBuffer) HandleStream() (*Resp, error) {
 }
 
 func (w *WriteBuffer) WriteArgs(args ...interface{}) (int, error) {
-	argv := len(args)
-	if argv == 1 {
+	n := len(args)
+	if n == 1 {
 		switch arg := args[0].(type) {
 		case int:
 			return w.WriteInt64(int64(arg))
@@ -135,14 +135,20 @@ func (w *WriteBuffer) WriteArgs(args ...interface{}) (int, error) {
 		case error:
 			return w.WriteError(arg)
 		default:
-			return 0, fmt.Errorf("invalid type")
+			return 0, fmt.Errorf("args invalid type")
 		}
 	}
-	if argv > 1 {
-		w.WriteArray(argv)
+	if n > 1 {
+		var nn int
+		w.WriteArray(n)
 		for _, arg := range args {
-			w.WriteArgs(arg)
+			n, err := w.WriteArgs(arg)
+			if err != nil {
+				return 0, err
+			}
+			nn += n
 		}
+		return nn, nil
 	}
-	return 0, fmt.Errorf("invalid type")
+	return 0, fmt.Errorf("args invalid type")
 }
