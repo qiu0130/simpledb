@@ -18,7 +18,7 @@ var (
 )
 
 // handle command process, error mean the function runtime error
-type CommandProcess func(s *SimpleServer, resp *Resp) error
+type CommandProcess func(s *Server, resp *Resp) error
 
 type Command struct {
 	Name    string
@@ -31,8 +31,16 @@ type Command struct {
 var CommandTable []*Command
 
 func init() {
-	register("SET", 3, 1, Set)
-	register("GET", 2, 0, Get)
+	register("set", 3, 1, set)
+	register("get", 2, 0, get)
+
+	register("decr", 2, 1, decr)
+	register("decrby", 3, 1, decrBy)
+	register("incr", 2, 1, incr)
+	register("incrBy", 3, 1, incrBy)
+
+	register("appends", 3, 1, appends)
+
 }
 
 func register(name string, arity int, flag int, process CommandProcess) {

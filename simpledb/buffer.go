@@ -134,6 +134,18 @@ func (w *WriteBuffer) WriteArgs(args ...interface{}) (int, error) {
 			return w.WriteFloat64(float64(arg))
 		case error:
 			return w.WriteError(arg)
+		case []string:
+			var nn int
+			n := len(arg)
+			w.WriteArray(n)
+			for _, a := range arg {
+				i, err := w.WriteArgs(a)
+				if err != nil {
+					return 0, err
+				}
+				nn += i
+			}
+			return nn, nil
 		default:
 			return 0, fmt.Errorf("args invalid type")
 		}
