@@ -34,10 +34,10 @@ func init() {
 	register("set", 3, 1, set)
 	register("get", 2, 0, get)
 
-	register("decr", 2, 1, decr)
-	register("decrby", 3, 1, decrBy)
-	register("incr", 2, 1, incr)
-	register("incrBy", 3, 1, incrBy)
+	register("decr", 2, 1, decrease)
+	register("decrby", 3, 1, decreaseBy)
+	register("incr", 2, 1, increase)
+	register("incrBy", 3, 1, increaseBy)
 
 	register("appends", 3, 1, appends)
 

@@ -53,6 +53,7 @@ const (
 	defaultDictSize = 1024
 	defaultHashSize = 1024
 	defaultSortedSetSize = 1024
+	defaultQueueSize = 1024
 )
 
 
@@ -70,6 +71,8 @@ type Server struct {
 
 	rb   *ReadBuffer
 	wb   *WriteBuffer
+	aofBuf *WriteBuffer
+	file string
 	host string
 	port int
 }
@@ -153,6 +156,10 @@ func handleProcess(s *Server) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		// append only write command to file
+		if command.SFlag == "w" {
+			go s.appendFile()
+		}
 		go command.Process(s, resp)
 	} else {
 		s.writeArgs(resp.Value)
@@ -234,6 +241,17 @@ func (s *Server) replyErr(errs error) (err error) {
 func (s *Server) flush() (err error) {
 	return s.wb.Flush()
 }
+
+func (s *Server) appendFile() {
+
+}
+//func (s *Server) rewrite() (err error) {
+//
+//}
+//
+//func (s *Server) serverConn (err error) {
+//
+//}
 
 
 

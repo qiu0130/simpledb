@@ -12,6 +12,13 @@ K/V commands:
 	setnx, setex, msetex, len, flush
  */
 
+const (
+	decr = iota
+	decrBy
+	incr
+	incrBy
+)
+
 type Dict struct {
 	mu    sync.RWMutex
 	value map[string]interface{}
@@ -37,7 +44,7 @@ func (d *Dict) size() int {
 	return len(d.value)
 }
 
-func (d *Dict) set(k string, args interface{}) {
+func (d *Dict) add(k string, args interface{}) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.value[k] = args
@@ -49,7 +56,7 @@ func (d *Dict) get(k string) (interface{}, error) {
 	if v, ok := d.value[k]; ok {
 		return v, nil
 	}
-	return nil, kvErr
+	return nil, empty
 }
 
 func (d *Dict) getInt64(k string, v int64) (int64,  error) {
@@ -60,7 +67,7 @@ func (d *Dict) getInt64(k string, v int64) (int64,  error) {
 	}
 	v, ok := value.(int64)
 	if !ok {
-		return 0, invalidInteger
+		return 0, empty
 	}
 	return v, nil
 }
@@ -68,81 +75,82 @@ func (d *Dict) getInt64(k string, v int64) (int64,  error) {
 
 func set(s *Server, resp *Resp) error {
 	if s.dict == nil {
-		s.dict = &Dict{
-			mu:    sync.RWMutex{},
-			value: make(map[string]interface{}),
-		}
+		s.dict = newDict()
 	}
 
 	key := string(resp.Array[1].Value)
 	value := string(resp.Array[2].Value)
-	s.dict.set(key, value)
+	s.dict.add(key, value)
 
 	return s.replyOk()
 }
 
 func get(s *Server, resp *Resp) error {
 	if s.dict == nil {
-		return s.writeArgs(kvErr)
+		return s.replyNil()
 	}
 
 	key := string(resp.Array[1].Value)
 	value, err := s.dict.get(key)
 	if err != nil {
-		return s.writeArgs(err)
+		return s.replyNil()
 	}
-	strValue, _ := value.(string)
+	strValue, ok := value.(string)
+	if !ok {
+		return s.replyErr(errStr)
+	}
 
 	return s.writeArgs(strValue)
 }
 
-func op(s *Server, resp *Resp, op string) (value int64, err error) {
+func op(s *Server, resp *Resp, op int) (value int64, err error) {
+	var vv, v int64
 	if s.dict == nil {
 		s.dict = newDict()
 	}
 
 	key := string(resp.Array[1].Value)
 	switch op {
-	case "-":
-		v, err := s.dict.getInt64(key, 0)
+	case decr:
+		v, err = s.dict.getInt64(key, 0)
 		if err != nil {
 			return
 		}
 		value = v-1
 
-	case "-!":
-		v, err := strconv.ParseInt(string(resp.Array[2].Value), 10, 0)
+	case decrBy:
+		v, err = strconv.ParseInt(string(resp.Array[2].Value), 10, 0)
 		if err != nil {
 			return
 		}
-		vv, err := s.dict.getInt64(key, 0)
+		vv, err = s.dict.getInt64(key, 0)
 		if err != nil {
 			return
 		}
 		value = vv - v
-	case "+":
-		v, err := s.dict.getInt64(key, 0)
+	case incr:
+		v, err = s.dict.getInt64(key, 0)
 		if err != nil {
 			return
 		}
 		value = v+1
-	case "+!":
-		v, err := strconv.ParseInt(string(resp.Array[2].Value), 10, 0)
+	case incrBy:
+		v, err = strconv.ParseInt(string(resp.Array[2].Value), 10, 0)
 		if err != nil {
 			return
 		}
-		vv, err := s.dict.getInt64(key, 0)
+		vv, err = s.dict.getInt64(key, 0)
 		if err != nil {
 			return
 		}
 		value = vv+v
 	}
-	s.dict.set(key, value)
+	s.dict.add(key, value)
 	return value, nil
 }
 
 func decrease(s *Server, resp *Resp) error {
-	v, err := op(s, resp, "-")
+	v, err := op(s, resp, decr)
 	if err != nil {
 		return s.writeArgs(err)
 	}
@@ -151,7 +159,7 @@ func decrease(s *Server, resp *Resp) error {
 }
 
 func decreaseBy(s *Server, resp *Resp) error {
-	v, err := op(s, resp, "-!")
+	v, err := op(s, resp, decrBy)
 	if err != nil {
 		return s.writeArgs(err)
 	}
@@ -159,7 +167,7 @@ func decreaseBy(s *Server, resp *Resp) error {
 }
 
 func increase(s *Server, resp *Resp) error {
-	v, err := op(s, resp, "+")
+	v, err := op(s, resp, incr)
 	if err != nil {
 		return s.writeArgs(err)
 	}
@@ -168,7 +176,7 @@ func increase(s *Server, resp *Resp) error {
 }
 
 func increaseBy(s *Server, resp *Resp) error {
-	v, err := op(s, resp, "+!")
+	v, err := op(s, resp, incrBy)
 	if err != nil {
 		return s.writeArgs(err)
 	}
@@ -188,13 +196,13 @@ func appends(s *Server, resp *Resp) error {
 	if err != nil {
 		vv, ok := v.(string)
 		if !ok {
-			return s.writeArgs(invalidString)
+			return s.replyErr(errStr)
 		}
 		newValue := vv + value
-		s.dict.set(key, newValue)
+		s.dict.add(key, newValue)
 		return s.writeArgs(newValue)
 	}
-	s.dict.set(key, value)
+	s.dict.add(key, value)
 	return s.writeArgs(value)
 }
 
@@ -203,10 +211,10 @@ func mSet(s *Server, resp *Resp) error {
 		s.dict = newDict()
 	}
 	l := len(resp.Array)
-	for i := 1; i < l; i+=2 {
+	for i := 1; i < l; i += 2 {
 		key := string(resp.Array[1].Value)
 		value := string(resp.Array[2].Value)
-		s.dict.set(key, value)
+		s.dict.add(key, value)
 	}
 	return s.replyOk()
 }
@@ -228,17 +236,17 @@ func del(s *Server, resp *Resp) error {
 	key := string(resp.Array[1].Value)
 	_, err := s.dict.get(key)
 	if err != nil {
-		return s.replyNull()
+		return s.reply0()
 	}
 	s.dict.delete(key)
-	return s.replyOk()
+	return s.reply1()
 }
 
 func exists(s *Server, resp *Resp) error {
 	key := string(resp.Array[1].Value)
 	_, err := s.dict.get(key)
 	if err != nil {
-		return s.replyNull()
+		return s.reply0()
 	}
-	return s.replyOk()
+	return s.reply1()
 }

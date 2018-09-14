@@ -24,9 +24,10 @@ func getAll(hash []Hash, key string) (map[string]string, error) {
 	return nil, empty
 }
 
-func set(hash []Hash, key, field, value string) error {
+func add(hash []Hash, key, field, value string) error {
 	h := Hash{key: key, }
-	hash = append(hash, )
+	hash = append(hash, h)
+	return nil
 }
 
 func hdel(hash []Hash, key string, field []string) (err error) {
@@ -164,10 +165,10 @@ func hLen(s *Server, resp *Resp) error {
 	}
 	return s.writeArgs(len(fields))
 }
-func hMget(s *Server, resp *Resp) error {
-
-}
-
-func hMSet(s *Server, resp *Resp) error {
-
-}
+//func hMget(s *Server, resp *Resp) error {
+//
+//}
+//
+//func hMSet(s *Server, resp *Resp) error {
+//
+//}
