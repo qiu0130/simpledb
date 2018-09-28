@@ -31,28 +31,22 @@ type Command struct {
 var CommandTable []*Command
 
 func init() {
-	register("set", 3, 1, set)
-	register("get", 2, 0, get)
 
-	register("decr", 2, 1, decrease)
-	register("decrby", 3, 1, decreaseBy)
-	register("incr", 2, 1, increase)
-	register("incrBy", 3, 1, increaseBy)
-
-	register("appends", 3, 1, appends)
+	register("set", 3, 1, "w", set)
+	register("get", 2, 1, "r", get)
+	register("decr", 2, 1, "w", decrease)
+	register("decrby", 3, 1, "w", decreaseBy)
+	register("incr", 2, 1, "w", increase)
+	register("incrBy", 3, 1, "w", increaseBy)
+	register("appends", 3, 1, "w", appends)
+	register("mset", 3, 1, "w", mSet)
+	register("mget", 3, 1, "r", mGet)
+	register("del", 2, 1, "w", del)
+	register("exists", 2, 1, "w", exists)
 
 }
 
-func register(name string, arity int, flag int, process CommandProcess) {
-	var sFlag string
-	switch flag {
-	case R:
-		sFlag = "r"
-	case W:
-		sFlag = "w"
-	case A:
-		sFlag = "a"
-	}
+func register(name string, arity int, flag int, sFlag string, process CommandProcess) {
 	c := &Command{name, arity, flag, sFlag, process}
 	CommandTable = append(CommandTable, c)
 }
@@ -77,9 +71,10 @@ func CheckCommand(name string, arity int) (*Command, error) {
 	if command == nil {
 		return nil, lackCommand
 	}
-	if arity != command.Arity {
-		return nil, invalidCommand
+	if arity >= command.Arity {
+		return command, nil
 	}
-	return command, nil
+	return nil, invalidCommand
+
 
 }

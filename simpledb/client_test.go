@@ -1,55 +1,41 @@
 package simpledb
 
-import "testing"
+import (
+	"testing"
+	"log"
+)
 
-func TestNewClient(t *testing.T) {
-	client := NewClient()
+var client *Client
 
-	resp, err := client.Set("foo", "bar")
-	if err != nil {
-		t.Error(err)
-	} else {
-		if resp.Type == TypeArray {
-			for _, a := range resp.Array {
-				t.Logf("%+v", string(a.Value))
-			}
-		} else {
-			t.Logf("%+v", string(resp.Value))
+func init()  {
+	client = NewClient()
+}
+
+func Print(resp *Resp) {
+	if resp.Type == TypeArray {
+		for _, a := range resp.Array {
+			log.Printf("%+v", string(a.Value))
 		}
+	} else {
+		log.Printf("%+v", string(resp.Value))
 	}
-
 }
 
 func TestSet(t *testing.T) {
-	client := NewClient()
 
 	resp, err := client.Set("foo", "bar")
 	if err != nil {
-		t.Error(err)
-	} else {
-		if resp.Type == TypeArray {
-			for _, a := range resp.Array {
-				t.Logf("%+v", string(a.Value))
-			}
-		} else {
-			t.Logf("%+v", string(resp.Value))
-		}
+		t.Fatal(err)
 	}
+	Print(resp)
 }
 
 func TestGet(t *testing.T) {
-	client := NewClient()
 
 	resp, err := client.Get("foo")
 	if err != nil {
-		t.Error(err)
-	} else {
-		if resp.Type == TypeArray {
-			for _, a := range resp.Array {
-				t.Logf("%+v", string(a.Value))
-			}
-		} else {
-			t.Logf("%+v", string(resp.Value))
-		}
+		t.Fatal(err)
 	}
+	Print(resp)
+
 }

@@ -135,3 +135,6 @@ func (c *Client) Get(key string) (*Resp, error) {
 	return c.execute("GET", key)
 }
 
+func (c *Client) Appends(key string, value ...interface{}) (*Resp, error) {
+	return c.execute("APPENDS", key, value)
+}
