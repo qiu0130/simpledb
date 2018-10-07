@@ -33,7 +33,7 @@ Set commands:
 	sadd, scard, sdiff, sdiffstore, sinter, sinterstore, sismenber, smembers, spop, srem, sunion, sunionstore
 
 SortedSet commands:
-	zadd, zcard, zcount, zincrby, zrange, zrangebysocre, zrank, zrem, zremrangebyrank...
+	zadd, zcard, zcount, zincrby, zrange, zrangebysocre, zrank, zrem, zremrangebyrank
 
 Misc:
 	expire, info, flush_all, save_to_disk, restore_from_disk, merge_from_disk, client_quit, shutdown
@@ -62,7 +62,7 @@ type Server struct {
 	conn    net.Conn
 	command *Command
 	dict    *Dict
-	hash []Hash
+	hash []*Hash
 	queue *Queue
 
 	ConnectTimeout time.Duration

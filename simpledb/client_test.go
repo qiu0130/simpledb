@@ -1,9 +1,13 @@
 package simpledb
 
-import "testing"
+import (
+	"testing"
+	"log"
+)
 
 var client *Client
 
+<<<<<<< HEAD
 func init() {
 	client = NewClient()
 }
@@ -18,17 +22,34 @@ func Print(resp *Resp, err error, t *testing.T) {
 			}
 		} else {
 			t.Logf("%+v", string(resp.Value))
+=======
+func init()  {
+	client = NewClient()
+}
+
+func Print(resp *Resp) {
+	if resp.Type == TypeArray {
+		for _, a := range resp.Array {
+			log.Printf("%+v", string(a.Value))
+>>>>>>> a4428d3773f0b205aa5251b470fd424c4eafbc9e
 		}
+	} else {
+		log.Printf("%+v", string(resp.Value))
 	}
 }
 
+<<<<<<< HEAD
 func PrintValue(key string, t *testing.T) {
 	resp, err := client.Get(key)
 	Print(resp, err, t)
 }
+=======
+func TestSet(t *testing.T) {
+>>>>>>> a4428d3773f0b205aa5251b470fd424c4eafbc9e
 
 func TestClientDict(t *testing.T) {
 	resp, err := client.Set("foo", "bar")
+<<<<<<< HEAD
 	Print(resp, err, t)
 	resp, err = client.Set("integer", "100")
 	Print(resp, err, t)
@@ -53,6 +74,22 @@ func TestClientDict(t *testing.T) {
 
 	resp, err = client.DecrBy("integer", 99)
 	Print(resp, err, t)
+=======
+	if err != nil {
+		t.Fatal(err)
+	}
+	Print(resp)
+}
+
+func TestGet(t *testing.T) {
+
+	resp, err := client.Get("foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	Print(resp)
+
+>>>>>>> a4428d3773f0b205aa5251b470fd424c4eafbc9e
 }
 
 //func TestSet(t *testing.T) {

@@ -2,25 +2,24 @@ package simpledb
 
 import (
 	"container/list"
-	"sync"
 	"strconv"
+	"sync"
 )
 
 /*
 Queue commands:
 	lpush, rpush, lpop, rpop, lrem, lindex, llen, lrange, lset, ltrim, rpoplpush, llfush
- */
-
+*/
 
 type Queue struct {
 	list map[string]*list.List
-	mu sync.RWMutex
+	mu   sync.RWMutex
 }
 
 func newQueue() *Queue {
 	return &Queue{
 		list: make(map[string]*list.List, defaultQueueSize),
-		mu: sync.RWMutex{},
+		mu:   sync.RWMutex{},
 	}
 }
 
@@ -46,7 +45,6 @@ func (q *Queue) rightPush(key string, value interface{}) error {
 	return nil
 }
 
-
 func (q *Queue) leftPop(key string) (string, error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -65,7 +63,6 @@ func (q *Queue) leftPop(key string) (string, error) {
 	return "", empty
 }
 
-
 func (q *Queue) rightPop(key string) (string, error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -83,7 +80,6 @@ func (q *Queue) rightPop(key string) (string, error) {
 	}
 	return "", empty
 }
-
 
 func (q *Queue) leftSet(key string, index int, value string) error {
 	q.mu.Lock()
@@ -120,6 +116,7 @@ func (q *Queue) remove(key string) error {
 }
 
 func (q *Queue) index(key string, index int) (string, error) {
+
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	queue, ok := q.list[key]
@@ -130,7 +127,7 @@ func (q *Queue) index(key string, index int) (string, error) {
 	for e := queue.Front(); e != nil; e.Next() {
 		if index == i {
 			ele := e.Value
-			if ele != nil {
+			if ele == nil {
 				return "", empty
 			}
 			v, ok := ele.(string)
@@ -155,7 +152,7 @@ func (q *Queue) ranges(key string, start, stop int) ([]string, error) {
 	}
 	var i int
 	for e := queue.Front(); e != nil; e.Next() {
-		if start == i && stop <= i{
+		if start == i && stop <= i {
 			ele := e.Value
 			if ele != nil {
 				return nil, empty
@@ -171,7 +168,6 @@ func (q *Queue) ranges(key string, start, stop int) ([]string, error) {
 	return s, nil
 }
 
-
 func llen(s *Server, resp *Resp) error {
 
 	if s.queue == nil {
@@ -181,7 +177,6 @@ func llen(s *Server, resp *Resp) error {
 	l := s.queue.Len(key)
 	return s.writeArgs(l)
 }
-
 
 func lpush(s *Server, resp *Resp) error {
 	if s.queue == nil {
@@ -198,7 +193,7 @@ func lpush(s *Server, resp *Resp) error {
 	return s.reply1()
 }
 
-func lpop (s *Server, resp *Resp) error {
+func lpop(s *Server, resp *Resp) error {
 
 	if s.queue == nil {
 		return s.replyNil()
@@ -214,8 +209,8 @@ func lpop (s *Server, resp *Resp) error {
 	return s.writeArgs(v)
 }
 
-
 func rpush(s *Server, resp *Resp) error {
+
 	if s.queue == nil {
 		s.queue = newQueue()
 	}
@@ -230,7 +225,7 @@ func rpush(s *Server, resp *Resp) error {
 	return s.reply1()
 }
 
-func rpop (s *Server, resp *Resp) error {
+func rpop(s *Server, resp *Resp) error {
 
 	if s.queue == nil {
 		return s.replyNil()
@@ -246,16 +241,20 @@ func rpop (s *Server, resp *Resp) error {
 	return s.writeArgs(v)
 }
 
-
 func lrem(s *Server, resp *Resp) error {
+
 	if s.queue == nil {
 		return s.reply0()
 	}
-	return nil
+
+	key := string(resp.Array[1].Value)
+	s.queue.remove(key)
+	return s.reply1()
+
 }
 
-
 func lindex(s *Server, resp *Resp) error {
+
 	if s.queue == nil {
 		return s.replyNil()
 	}
@@ -271,8 +270,8 @@ func lindex(s *Server, resp *Resp) error {
 	return s.writeArgs(v)
 }
 
-
 func lset(s *Server, resp *Resp) error {
+
 	if s.queue == nil {
 		return s.reply0()
 	}
@@ -290,8 +289,8 @@ func lset(s *Server, resp *Resp) error {
 	return s.reply1()
 }
 
-
 func lrange(s *Server, resp *Resp) error {
+
 	if s.queue == nil {
 		return s.replyNil()
 	}
@@ -311,5 +310,3 @@ func lrange(s *Server, resp *Resp) error {
 	}
 	return s.writeArgs(v)
 }
-
-

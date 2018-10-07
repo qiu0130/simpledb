@@ -24,42 +24,31 @@ type Command struct {
 	Name    string
 	Arity   int            // limit argument, > N
 	Flag    int            // client or server
-	SFlag   string         // r, w, a
+	SFlag   byte         // r, w, a
 	Process CommandProcess // handle command function
 }
 
 var CommandTable []*Command
 
 func init() {
-	// str command
-	register("SET", 3, 1, set)
-	register("GET", 2, 1, get)
-	register("DEL", 2, 1, del)
-	register("EXISTS", 2, 1, exists)
-	register("DECR", 2, 1, decrease)
-	register("DECRBY", 3, 1, decreaseBy)
-	register("INCR", 2, 1, increase)
-	register("INCRBY", 3, 1, increaseBy)
-	register("APPEND", 3, 1, appends)
-	register("MSET", 3, 1, mSet)
-	register("MGET", 3, 1, mGet)
-	register("MDELETE", 3, 1, mDelete)
-
-	// hash command
+	// k/v command
+	register("SET", 3, 1, 'w', set)
+	register("GET", 2, 1, 'r', get)
+	register("DEL", 2, 1, 'w', del)
+	register("EXISTS", 2, 1, 'r', exists)
+	register("DECR", 2, 1, 'w', decrease)
+	register("DECRBY", 3, 1, 'w', decreaseBy)
+	register("INCR", 2, 1, 'w', increase)
+	register("INCRBY", 3, 1, 'w', increaseBy)
+	register("APPEND", 3, 1, 'a', appends)
+	register("MSET", 3, 1, 'w', mSet)
+	register("MGET", 3, 1, 'w', mGet)
+	register("MDELETE", 3, 1, 'w', mDelete)
 
 
 }
 
-func register(name string, arity int, flag int, process CommandProcess) {
-	var sFlag string
-	switch flag {
-	case R:
-		sFlag = "r"
-	case W:
-		sFlag = "w"
-	case A:
-		sFlag = "a"
-	}
+func register(name string, arity int, flag int, sFlag byte, process CommandProcess) {
 	c := &Command{name, arity, flag, sFlag, process}
 	CommandTable = append(CommandTable, c)
 }
@@ -84,9 +73,10 @@ func CheckCommand(name string, arity int) (*Command, error) {
 	if command == nil {
 		return nil, lackCommand
 	}
-	if arity != command.Arity {
-		return nil, invalidCommand
+	if arity >= command.Arity {
+		return command, nil
 	}
-	return command, nil
+	return nil, invalidCommand
+
 
 }
