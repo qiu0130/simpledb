@@ -31,15 +31,22 @@ type Command struct {
 var CommandTable []*Command
 
 func init() {
-	register("set", 3, 1, set)
-	register("get", 2, 0, get)
+	// str command
+	register("SET", 3, 1, set)
+	register("GET", 2, 1, get)
+	register("DEL", 2, 1, del)
+	register("EXISTS", 2, 1, exists)
+	register("DECR", 2, 1, decrease)
+	register("DECRBY", 3, 1, decreaseBy)
+	register("INCR", 2, 1, increase)
+	register("INCRBY", 3, 1, increaseBy)
+	register("APPEND", 3, 1, appends)
+	register("MSET", 3, 1, mSet)
+	register("MGET", 3, 1, mGet)
+	register("MDELETE", 3, 1, mDelete)
 
-	register("decr", 2, 1, decrease)
-	register("decrby", 3, 1, decreaseBy)
-	register("incr", 2, 1, increase)
-	register("incrBy", 3, 1, increaseBy)
+	// hash command
 
-	register("appends", 3, 1, appends)
 
 }
 

@@ -7,8 +7,6 @@ import (
 	"bufio"
 )
 
-
-
 var (
 	wb  *WriteBuffer
  	rb  *ReadBuffer
@@ -25,7 +23,6 @@ func init() {
 	rb.buf = bufio.NewReader(&buf)
 
 }
-
 
 func TestWriteBuffer_WriteInt64(t *testing.T) {
 

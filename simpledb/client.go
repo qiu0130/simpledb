@@ -126,12 +126,44 @@ func (c *Client) writeArgsWithFlush(args ...interface{}) (err error) {
 func (c *Client) readRely() (*Resp, error) {
 	return c.rb.HandleStream()
 }
-
+// k/v command
 func (c *Client) Set(key, value string) (*Resp, error) {
 	return c.execute("SET", key, value)
 }
 
 func (c *Client) Get(key string) (*Resp, error) {
 	return c.execute("GET", key)
+}
+
+func (c *Client) Delete(key, value string) (*Resp, error) {
+	return c.execute("DEL", key, value)
+}
+
+func (c *Client) Exists(key string) (*Resp, error) {
+	return c.execute("EXISTS", key)
+}
+func (c *Client) Incr(key string) (*Resp, error) {
+	return c.execute("INCR", key)
+}
+func (c *Client) IncrBy(key string, value int64) (*Resp, error) {
+	return c.execute("INCRBY", key, value)
+}
+func (c *Client) Decr(key string) (*Resp, error) {
+	return c.execute("DECR", key)
+}
+func (c *Client) DecrBy(key string, value int64) (*Resp, error) {
+	return c.execute("DECRBY", key, value)
+}
+func (c *Client) Append(key, value string) (*Resp, error) {
+	return c.execute("APPANDS", key, value)
+}
+func (c *Client) MGet(key, value string) (*Resp, error) {
+	return c.execute("MGET", key, value)
+}
+func (c *Client) MSet(key, value string) (*Resp, error) {
+	return c.execute("MSET", key, value)
+}
+func (c *Client) MDelete(key, value string) (*Resp, error) {
+	return c.execute("MDELETE", key, value)
 }
 

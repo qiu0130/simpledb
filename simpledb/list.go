@@ -251,7 +251,7 @@ func lrem(s *Server, resp *Resp) error {
 	if s.queue == nil {
 		return s.reply0()
 	}
-
+	return nil
 }
 
 

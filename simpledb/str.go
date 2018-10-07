@@ -3,13 +3,28 @@ package simpledb
 import (
 	"sync"
 	"strconv"
+	"log"
 )
 
 /*
 K/V commands:
-	append, decr, decrby,  incr, incrby, mdelete, mget, mset, mpop,
-	get, set, delete, exists, get, getset,
-	setnx, setex, msetex, len, flush
+	append
+	decr
+	decrby
+	incr
+	incrby
+    mdelete
+	mget
+    mset
+	get
+	set
+	del
+	exists
+	//setnx
+	//setex
+	//msetex
+	len
+	flush
  */
 
 const (
@@ -56,18 +71,18 @@ func (d *Dict) get(k string) (interface{}, error) {
 	if v, ok := d.value[k]; ok {
 		return v, nil
 	}
-	return nil, empty
+	return "", empty
 }
 
 func (d *Dict) getInt64(k string, v int64) (int64,  error) {
-
 	value, err := d.get(k)
 	if err != nil {
 		return v, nil
 	}
+	log.Println(value, err)
 	v, ok := value.(int64)
 	if !ok {
-		return 0, empty
+		return 0, errInteger
 	}
 	return v, nil
 }
@@ -77,7 +92,6 @@ func set(s *Server, resp *Resp) error {
 	if s.dict == nil {
 		s.dict = newDict()
 	}
-
 	key := string(resp.Array[1].Value)
 	value := string(resp.Array[2].Value)
 	s.dict.add(key, value)
@@ -108,7 +122,6 @@ func op(s *Server, resp *Resp, op int) (value int64, err error) {
 	if s.dict == nil {
 		s.dict = newDict()
 	}
-
 	key := string(resp.Array[1].Value)
 	switch op {
 	case decr:
@@ -155,7 +168,6 @@ func decrease(s *Server, resp *Resp) error {
 		return s.writeArgs(err)
 	}
 	return s.writeArgs(v)
-
 }
 
 func decreaseBy(s *Server, resp *Resp) error {
@@ -172,7 +184,6 @@ func increase(s *Server, resp *Resp) error {
 		return s.writeArgs(err)
 	}
 	return s.writeArgs(v)
-
 }
 
 func increaseBy(s *Server, resp *Resp) error {
@@ -206,31 +217,6 @@ func appends(s *Server, resp *Resp) error {
 	return s.writeArgs(value)
 }
 
-func mSet(s *Server, resp *Resp) error {
-	if s.dict == nil {
-		s.dict = newDict()
-	}
-	l := len(resp.Array)
-	for i := 1; i < l; i += 2 {
-		key := string(resp.Array[1].Value)
-		value := string(resp.Array[2].Value)
-		s.dict.add(key, value)
-	}
-	return s.replyOk()
-}
-
-func mGet(s *Server, resp *Resp) error {
-
-	for _, args := range resp.Array[1:] {
-		v, _ := s.dict.get(string(args.Value))
-		_, err := s.wb.WriteArgs(v)
-		if err != nil {
-			return err
-		}
-	}
-	return s.flush()
-}
-
 func del(s *Server, resp *Resp) error {
 
 	key := string(resp.Array[1].Value)
@@ -249,4 +235,40 @@ func exists(s *Server, resp *Resp) error {
 		return s.reply0()
 	}
 	return s.reply1()
+}
+
+func mSet(s *Server, resp *Resp) error {
+	if s.dict == nil {
+		s.dict = newDict()
+	}
+	l := len(resp.Array)
+	// todo len can't enough
+	for i := 1; i < l; i += 2 {
+		key := string(resp.Array[1].Value)
+		value := string(resp.Array[2].Value)
+		s.dict.add(key, value)
+	}
+	return s.replyOk()
+}
+
+func mGet(s *Server, resp *Resp) error {
+
+	for _, args := range resp.Array[1:] {
+		v, _ := s.dict.get(string(args.Value))
+		_, err := s.wb.WriteArgs(v)
+		if err != nil {
+			return s.replyErr(err)
+		}
+	}
+	return s.replyOk()
+}
+
+func mDelete(s *Server, resp *Resp) error {
+	for _, args := range resp.Array[1:] {
+		err := s.dict.delete(string(args.Value))
+		if err != nil {
+			return s.replyErr(err)
+		}
+	}
+	return s.replyOk()
 }
