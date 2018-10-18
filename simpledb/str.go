@@ -3,7 +3,7 @@ package simpledb
 import (
 	"sync"
 	"strconv"
-	"log"
+	"fmt"
 )
 
 /*
@@ -26,13 +26,6 @@ K/V commands:
 	len
 	flush
  */
-
-const (
-	decr = iota
-	decrBy
-	incr
-	incrBy
-)
 
 type Dict struct {
 	mu    sync.RWMutex
@@ -71,20 +64,22 @@ func (d *Dict) get(k string) (interface{}, error) {
 	if v, ok := d.value[k]; ok {
 		return v, nil
 	}
-	return "", empty
+	return nil, empty
 }
 
-func (d *Dict) getInt64(k string, v int64) (int64,  error) {
-	value, err := d.get(k)
+func (d *Dict) getInt64(k string) (int64,  error) {
+	val, err := d.get(k)
 	if err != nil {
-		return v, nil
+		return 0, nil
 	}
-	log.Println(value, err)
-	v, ok := value.(int64)
-	if !ok {
-		return 0, errInteger
+	if v, ok := val.(string); ok {
+		t, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return 0, errInteger
+		}
+		return t, nil
 	}
-	return v, nil
+	return 0, errInteger
 }
 
 
@@ -117,154 +112,119 @@ func get(s *Server, resp *Resp) error {
 	return s.writeArgs(strValue)
 }
 
-func op(s *Server, resp *Resp, op int) (value int64, err error) {
-	var vv, v int64
+
+func decrease(s *Server, resp *Resp) error {
+	var (
+		v int64
+		err error
+	)
 	if s.dict == nil {
 		s.dict = newDict()
 	}
 	key := string(resp.Array[1].Value)
-	switch op {
-	case decr:
-		v, err = s.dict.getInt64(key, 0)
-		if err != nil {
-			return
-		}
-		value = v-1
-
-	case decrBy:
-		v, err = strconv.ParseInt(string(resp.Array[2].Value), 10, 0)
-		if err != nil {
-			return
-		}
-		vv, err = s.dict.getInt64(key, 0)
-		if err != nil {
-			return
-		}
-		value = vv - v
-	case incr:
-		v, err = s.dict.getInt64(key, 0)
-		if err != nil {
-			return
-		}
-		value = v+1
-	case incrBy:
-		v, err = strconv.ParseInt(string(resp.Array[2].Value), 10, 0)
-		if err != nil {
-			return
-		}
-		vv, err = s.dict.getInt64(key, 0)
-		if err != nil {
-			return
-		}
-		value = vv+v
-	}
-	s.dict.add(key, value)
-	return value, nil
-}
-
-func decrease(s *Server, resp *Resp) error {
-	v, err := op(s, resp, decr)
+	v, err = s.dict.getInt64(key)
 	if err != nil {
-		return s.writeArgs(err)
+		return s.replyErr(err)
 	}
+	v = v - 1
+	s.dict.add(key, strconv.FormatInt(v, 10))
 	return s.writeArgs(v)
 }
 
 func decreaseBy(s *Server, resp *Resp) error {
-	v, err := op(s, resp, decrBy)
-	if err != nil {
-		return s.writeArgs(err)
+	var (
+		v int64
+		err error
+	)
+	if s.dict == nil {
+		s.dict = newDict()
 	}
+	key := string(resp.Array[1].Value)
+	val, err := strconv.ParseInt(string(resp.Array[2].Value), 10, 64)
+	if err != nil {
+		return s.replyErr(err)
+	}
+	v, err = s.dict.getInt64(key)
+	if err != nil {
+		return s.replyErr(err)
+	}
+	v = v - val
+	s.dict.add(key, strconv.FormatInt(v, 10))
 	return s.writeArgs(v)
 }
 
 func increase(s *Server, resp *Resp) error {
-	v, err := op(s, resp, incr)
-	if err != nil {
-		return s.writeArgs(err)
+	var (
+		v int64
+		err error
+	)
+	if s.dict == nil {
+		s.dict = newDict()
 	}
+	key := string(resp.Array[1].Value)
+	v, err = s.dict.getInt64(key)
+	if err != nil {
+		return s.replyErr(err)
+	}
+	v = v + 1
+	s.dict.add(key, strconv.FormatInt(v, 10))
 	return s.writeArgs(v)
 }
 
 func increaseBy(s *Server, resp *Resp) error {
-	v, err := op(s, resp, incrBy)
-	if err != nil {
-		return s.writeArgs(err)
+	var (
+		v int64
+		err error
+	)
+	if s.dict == nil {
+		s.dict = newDict()
 	}
+	key := string(resp.Array[1].Value)
+	val, err := strconv.ParseInt(string(resp.Array[2].Value), 10, 64)
+	if err != nil {
+		return s.replyErr(err)
+	}
+	v, err = s.dict.getInt64(key)
+	if err != nil {
+		return s.replyErr(err)
+	}
+	v = v + val
+	s.dict.add(key, strconv.FormatInt(v, 10))
 	return s.writeArgs(v)
 
 }
 
 func appends(s *Server, resp *Resp) error {
+
 	if s.dict == nil {
 		s.dict = newDict()
 	}
-
 	key := string(resp.Array[1].Value)
 	value := string(resp.Array[2].Value)
 
-	v, err := s.dict.get(key)
+	val, err := s.dict.get(key)
 	if err != nil {
-		vv, ok := v.(string)
-		if !ok {
-			return s.replyErr(errStr)
-		}
-		newValue := vv + value
+		s.dict.add(key, value)
+		return s.writeArgs(len(value))
+	}
+	if v, ok := val.(string); ok {
+		newValue := v + value
 		s.dict.add(key, newValue)
-		return s.writeArgs(newValue)
+		return s.writeArgs(len(newValue))
 	}
-	s.dict.add(key, value)
-	return s.writeArgs(value)
+	return s.replyErr(errStr)
 }
 
-func del(s *Server, resp *Resp) error {
-
-	key := string(resp.Array[1].Value)
-	_, err := s.dict.get(key)
-	if err != nil {
-		return s.reply0()
-	}
-	s.dict.delete(key)
-	return s.reply1()
-}
-
-func exists(s *Server, resp *Resp) error {
-	key := string(resp.Array[1].Value)
-	_, err := s.dict.get(key)
-	if err != nil {
-		return s.reply0()
-	}
-	return s.reply1()
-}
-
-func mSet(s *Server, resp *Resp) error {
+func deletes(s *Server, resp *Resp) error {
 	if s.dict == nil {
 		s.dict = newDict()
 	}
-	l := len(resp.Array)
-	// todo len can't enough
-	for i := 1; i < l; i += 2 {
-		key := string(resp.Array[1].Value)
-		value := string(resp.Array[2].Value)
-		s.dict.add(key, value)
+	for _, args := range resp.Array {
+		fmt.Println(string(args.Value))
 	}
-	return s.replyOk()
-}
-
-func mGet(s *Server, resp *Resp) error {
 
 	for _, args := range resp.Array[1:] {
-		v, _ := s.dict.get(string(args.Value))
-		_, err := s.wb.WriteArgs(v)
-		if err != nil {
-			return s.replyErr(err)
-		}
-	}
-	return s.replyOk()
-}
-
-func mDelete(s *Server, resp *Resp) error {
-	for _, args := range resp.Array[1:] {
+		fmt.Println(string(args.Value))
 		err := s.dict.delete(string(args.Value))
 		if err != nil {
 			return s.replyErr(err)
@@ -272,3 +232,47 @@ func mDelete(s *Server, resp *Resp) error {
 	}
 	return s.replyOk()
 }
+
+func exists(s *Server, resp *Resp) error {
+	if s.dict == nil {
+		s.dict = newDict()
+	}
+	key := string(resp.Array[1].Value)
+	_, err := s.dict.get(key)
+	if err != nil {
+		return s.reply0()
+	}
+	return s.reply1()
+}
+
+func multipleSet(s *Server, resp *Resp) error {
+	if s.dict == nil {
+		s.dict = newDict()
+	}
+	l := len(resp.Array)
+	// todo len can't enough
+	for i := 1; i < l; i += 2 {
+		key := string(resp.Array[i].Value)
+		value := string(resp.Array[i+1].Value)
+		s.dict.add(key, value)
+	}
+	return s.replyOk()
+}
+
+func multipleGet(s *Server, resp *Resp) error {
+	if s.dict == nil {
+		s.dict = newDict()
+	}
+	for _, args := range resp.Array[1:] {
+		v, err := s.dict.get(string(args.Value))
+		if err != nil {
+			s.wb.WriteArgs(nil)
+		}
+		_, err = s.wb.WriteArgs(v)
+		if err != nil {
+			return s.replyErr(err)
+		}
+	}
+	return s.replyOk()
+}
+

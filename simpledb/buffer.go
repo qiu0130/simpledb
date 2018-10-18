@@ -135,7 +135,7 @@ func (w *WriteBuffer) WriteArgs(args ...interface{}) (int, error) {
 		case error:
 			return w.WriteError(arg)
 		case []string:
-			var nn int
+			var total int
 			n := len(arg)
 			w.WriteArray(n)
 			for _, a := range arg {
@@ -143,24 +143,23 @@ func (w *WriteBuffer) WriteArgs(args ...interface{}) (int, error) {
 				if err != nil {
 					return 0, err
 				}
-				nn += i
+				total += i
 			}
-			return nn, nil
+			return total, nil
 		default:
 			return 0, fmt.Errorf("args invalid type")
 		}
-	}
-	if n > 1 {
-		var nn int
+	} else if n > 1 {
+		var total int
 		w.WriteArray(n)
 		for _, arg := range args {
 			n, err := w.WriteArgs(arg)
 			if err != nil {
 				return 0, err
 			}
-			nn += n
+			total += n
 		}
-		return nn, nil
+		return total, nil
 	}
 	return 0, fmt.Errorf("args invalid type")
 }

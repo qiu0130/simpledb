@@ -7,8 +7,8 @@ import (
 	"time"
 )
 const (
-	//defaultConfigPath = "/Users/cowboy/golang/src/simpledb/simpledb/config/config.yaml"
-	defaultConfigPath = "/home/qiu/gopath/src/simpledb/simpledb/config/config.yaml"
+	defaultConfigPath = "/Users/cowboy/golang/src/simpledb/simpledb/config/config.yaml"
+	//defaultConfigPath = "/home/qiu/gopath/src/simpledb/simpledb/config/config.yaml"
 )
 
 type Config struct {

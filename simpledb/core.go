@@ -151,13 +151,14 @@ func handleProcess(s *Server) {
 	if resp.Type == TypeArray {
 		arity := len(resp.Array)
 		name := string(resp.Array[0].Value)
-		log.Print(name, arity)
+
+		log.Printf("name: %s, arity: %d", name, arity)
 		command, err := CheckCommand(name, arity)
 		if err != nil {
 			log.Fatal(err)
 		}
 		// append only write command to file
-		if command.SFlag == "w" {
+		if command.SFlag == 'w' {
 			go s.appendFile()
 		}
 		go command.Process(s, resp)

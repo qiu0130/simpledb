@@ -34,17 +34,15 @@ func init() {
 	// k/v command
 	register("SET", 3, 1, 'w', set)
 	register("GET", 2, 1, 'r', get)
-	register("DEL", 2, 1, 'w', del)
+	register("DEL", 2, 1, 'w', deletes)
 	register("EXISTS", 2, 1, 'r', exists)
 	register("DECR", 2, 1, 'w', decrease)
 	register("DECRBY", 3, 1, 'w', decreaseBy)
 	register("INCR", 2, 1, 'w', increase)
 	register("INCRBY", 3, 1, 'w', increaseBy)
 	register("APPEND", 3, 1, 'a', appends)
-	register("MSET", 3, 1, 'w', mSet)
-	register("MGET", 3, 1, 'w', mGet)
-	register("MDELETE", 3, 1, 'w', mDelete)
-
+	register("MSET", 3, 1, 'w', multipleSet)
+	register("MGET", 2, 1, 'w', multipleGet)
 
 }
 

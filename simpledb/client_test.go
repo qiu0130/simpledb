@@ -2,12 +2,11 @@ package simpledb
 
 import (
 	"testing"
-	"log"
 )
 
 var client *Client
 
-<<<<<<< HEAD
+
 func init() {
 	client = NewClient()
 }
@@ -22,84 +21,76 @@ func Print(resp *Resp, err error, t *testing.T) {
 			}
 		} else {
 			t.Logf("%+v", string(resp.Value))
-=======
-func init()  {
-	client = NewClient()
-}
 
-func Print(resp *Resp) {
-	if resp.Type == TypeArray {
-		for _, a := range resp.Array {
-			log.Printf("%+v", string(a.Value))
->>>>>>> a4428d3773f0b205aa5251b470fd424c4eafbc9e
 		}
-	} else {
-		log.Printf("%+v", string(resp.Value))
 	}
 }
 
-<<<<<<< HEAD
-func PrintValue(key string, t *testing.T) {
-	resp, err := client.Get(key)
-	Print(resp, err, t)
-}
-=======
-func TestSet(t *testing.T) {
->>>>>>> a4428d3773f0b205aa5251b470fd424c4eafbc9e
-
-func TestClientDict(t *testing.T) {
+func TestClient_Set(t *testing.T) {
 	resp, err := client.Set("foo", "bar")
-<<<<<<< HEAD
 	Print(resp, err, t)
 	resp, err = client.Set("integer", "100")
 	Print(resp, err, t)
 	resp, err = client.Set("test0", "test1")
 	Print(resp, err, t)
-	resp, err = client.Set("test2", "test3")
+	resp, err = client.Set("test1", "test3")
 	Print(resp, err, t)
-
-	PrintValue("foo", t)
-	PrintValue("integer", t)
-	PrintValue("test0", t)
-	PrintValue("test2", t)
-
-	resp, err = client.Incr("integer")
-	Print(resp, err, t)
-
-	resp, err = client.IncrBy("integer", 100)
-	Print(resp, err, t)
-
-	resp, err = client.Decr("integer")
-	Print(resp, err, t)
-
-	resp, err = client.DecrBy("integer", 99)
-	Print(resp, err, t)
-=======
-	if err != nil {
-		t.Fatal(err)
-	}
-	Print(resp)
 }
 
-func TestGet(t *testing.T) {
 
+func TestClient_Get(t *testing.T) {
 	resp, err := client.Get("foo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	Print(resp)
-
->>>>>>> a4428d3773f0b205aa5251b470fd424c4eafbc9e
+	Print(resp, err, t)
+	resp, err = client.Get("integer")
+	Print(resp, err, t)
+	resp, err = client.Get("test0")
+	Print(resp, err, t)
+	resp, err = client.Get("test1")
+	Print(resp, err, t)
 }
 
-//func TestSet(t *testing.T) {
-//	resp, err := client.Set("foo", "bar")
-//	Print(resp, err, t)
-//}
-//
-//func TestGet(t *testing.T) {
-//	resp, err := client.Get("foo")
-//	Print(resp, err, t)
-//}
+func TestClient_Incr(t *testing.T) {
+	resp, err := client.Incr("integer")
+	Print(resp, err, t)
+}
 
+func TestClient_IncrBy(t *testing.T) {
+	resp, err := client.IncrBy("integer", 100)
+	Print(resp, err, t)
+}
+
+func TestClient_Decr(t *testing.T) {
+	resp, err := client.Decr("integer")
+	Print(resp, err, t)
+}
+
+func TestClient_DecrBy(t *testing.T) {
+	resp, err := client.DecrBy("integer", 100)
+	Print(resp, err, t)
+}
+
+func TestClient_Append(t *testing.T) {
+	resp, err := client.Append("foo", "bar")
+	Print(resp, err, t)
+}
+
+func TestClient_Delete(t *testing.T) {
+	resp, err := client.Delete([]string{"foo", "test0"})
+	Print(resp, err, t)
+}
+
+func TestClient_MGet(t *testing.T) {
+	resp, err := client.MGet([]string{"foo", "test0"})
+	Print(resp, err, t)
+}
+
+func TestClient_MSet(t *testing.T) {
+
+	mock := make(map[string]interface{})
+	mock["foo1"] = "1"
+	mock["test1"] = "test2"
+
+	resp, err := client.MSet(mock)
+	Print(resp, err, t)
+}
 

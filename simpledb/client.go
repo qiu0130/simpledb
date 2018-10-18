@@ -119,6 +119,8 @@ func (c *Client) writeArgsWithFlush(args ...interface{}) (err error) {
 	if err != nil {
 		return
 	}
+
+	fmt.Println(c.wb.buf.Buffered())
 	err = c.wb.Flush()
 	return
 }
@@ -135,8 +137,8 @@ func (c *Client) Get(key string) (*Resp, error) {
 	return c.execute("GET", key)
 }
 
-func (c *Client) Delete(key, value string) (*Resp, error) {
-	return c.execute("DEL", key, value)
+func (c *Client) Delete(key []string) (*Resp, error) {
+	return c.execute("DEL", key)
 }
 
 func (c *Client) Exists(key string) (*Resp, error) {
@@ -155,15 +157,13 @@ func (c *Client) DecrBy(key string, value int64) (*Resp, error) {
 	return c.execute("DECRBY", key, value)
 }
 func (c *Client) Append(key, value string) (*Resp, error) {
-	return c.execute("APPANDS", key, value)
+	return c.execute("APPEND", key, value)
 }
-func (c *Client) MGet(key, value string) (*Resp, error) {
-	return c.execute("MGET", key, value)
+func (c *Client) MGet(key []string) (*Resp, error) {
+	return c.execute("MGET", key)
 }
-func (c *Client) MSet(key, value string) (*Resp, error) {
-	return c.execute("MSET", key, value)
+func (c *Client) MSet(value map[string]interface{}) (*Resp, error) {
+	return c.execute("MSET", value)
 }
-func (c *Client) MDelete(key, value string) (*Resp, error) {
-	return c.execute("MDELETE", key, value)
-}
+
 
