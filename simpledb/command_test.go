@@ -4,13 +4,13 @@ import "testing"
 
 func TestCheckCommand(t *testing.T) {
 
-	var tests = []struct{
+	var tests = []struct {
 		command string
-		key string
-		value string
-		limit int
-		flag bool
-	} {
+		key     string
+		value   string
+		limit   int
+		flag    bool
+	}{
 		{"SET", "foo", "bar", 3, true},
 	}
 	for _, test := range tests {

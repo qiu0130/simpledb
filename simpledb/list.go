@@ -23,75 +23,88 @@ func newQueue() *Queue {
 	}
 }
 
-func (q *Queue) leftPush(key string, value interface{}) error {
+func (q *Queue) pushFront(key string, value interface{}) int {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	if _, ok := q.list[key]; ok {
+		q.list[key].PushFront(value)
+		return q.list[key].Len()
+	}
+	q.list[key] = list.New()
+	q.list[key].PushFront(value)
+	return q.list[key].Len()
+}
+
+func (q *Queue) pushBack(key string, value interface{}) int {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	if _, ok := q.list[key]; ok {
+		q.list[key].PushBack(value)
+		return q.list[key].Len()
+	}
+	q.list[key] = list.New()
+	q.list[key].PushBack(value)
+	return q.list[key].Len()
+}
+
+func (q *Queue) frontPop(key string) (interface{}, error) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	queue, ok := q.list[key]
+	if !ok {
+		return nil, empty
+	}
+	e := queue.Front()
+	q.list[key].Remove(e)
+	if e != nil {
+		return e.Value, nil
+	}
+	return nil, empty
+}
+
+func (q *Queue) backPop(key string) (interface{}, error) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	queue, ok := q.list[key]
+	if !ok {
+		return nil, empty
+	}
+	e := queue.Back()
+	q.list[key].Remove(e)
+	if e != nil {
+		return e.Value, nil
+	}
+	return nil, empty
+}
+
+func (q *Queue) set(key string, index int, value interface{}) error {
+	var (
+		i int
+		e *list.Element
+	)
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	queue, ok := q.list[key]
 	if !ok {
 		return empty
 	}
-	queue.PushFront(value)
-	return nil
-}
-
-func (q *Queue) rightPush(key string, value interface{}) error {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-	queue, ok := q.list[key]
-	if !ok {
-		return empty
-	}
-	queue.PushBack(value)
-	return nil
-}
-
-func (q *Queue) leftPop(key string) (string, error) {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-	queue, ok := q.list[key]
-	if !ok {
-		return "", empty
-	}
-	ele := queue.Front()
-	if ele != nil {
-		v, ok := ele.Value.(string)
-		if !ok {
-			return "", errStr
+	l := queue.Len()
+	if index >= l {
+		for e = queue.Front(); e != nil; {
+			if e.Next() == nil {
+				q.list[key].InsertAfter(value, e)
+				return nil
+			} else {
+				e = e.Next()
+			}
 		}
-		return v, nil
 	}
-	return "", empty
-}
-
-func (q *Queue) rightPop(key string) (string, error) {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-	queue, ok := q.list[key]
-	if !ok {
-		return "", empty
-	}
-	ele := queue.Back()
-	if ele != nil {
-		v, ok := ele.Value.(string)
-		if !ok {
-			return "", errStr
-		}
-		return v, nil
-	}
-	return "", empty
-}
-
-func (q *Queue) leftSet(key string, index int, value string) error {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-	queue, ok := q.list[key]
-	if !ok {
-		return empty
-	}
-	var i int
-	for e := queue.Front(); e != nil; e.Next() {
+	for e = queue.Front(); e != nil; e = e.Next() {
 		if index == i {
-			queue.InsertAfter(value, e)
+			q.list[key].InsertBefore(value, e)
+			return nil
 		}
 		i += 1
 	}
@@ -115,35 +128,8 @@ func (q *Queue) remove(key string) error {
 	return nil
 }
 
-func (q *Queue) index(key string, index int) (string, error) {
+func (q *Queue) index(key string, index int) (interface{}, error) {
 
-	q.mu.Lock()
-	defer q.mu.Unlock()
-	queue, ok := q.list[key]
-	if !ok {
-		return "", empty
-	}
-	var i int
-	for e := queue.Front(); e != nil; e.Next() {
-		if index == i {
-			ele := e.Value
-			if ele == nil {
-				return "", empty
-			}
-			v, ok := ele.(string)
-			if !ok {
-				return "", errStr
-			}
-			return v, nil
-		}
-		i += 1
-	}
-	return "", empty
-}
-
-func (q *Queue) ranges(key string, start, stop int) ([]string, error) {
-
-	var s []string
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	queue, ok := q.list[key]
@@ -151,17 +137,30 @@ func (q *Queue) ranges(key string, start, stop int) ([]string, error) {
 		return nil, empty
 	}
 	var i int
-	for e := queue.Front(); e != nil; e.Next() {
-		if start == i && stop <= i {
-			ele := e.Value
-			if ele != nil {
-				return nil, empty
-			}
-			v, ok := ele.(string)
-			if !ok {
-				return nil, errStr
-			}
-			s = append(s, v)
+	for e := queue.Front(); e != nil; e = e.Next() {
+		if index == i {
+			return e.Value, nil
+		}
+		i += 1
+	}
+	return nil, empty
+}
+
+func (q *Queue) ranges(key string, start, stop int) ([]string, error) {
+
+	var (
+		i int
+		s []string
+	)
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	queue, ok := q.list[key]
+	if !ok {
+		return nil, empty
+	}
+	for e := queue.Front(); e != nil; e = e.Next() {
+		if start <= i && i < stop {
+			s = append(s, e.Value.(string))
 		}
 		i += 1
 	}
@@ -186,11 +185,8 @@ func lpush(s *Server, resp *Resp) error {
 	key := string(resp.Array[1].Value)
 	value := string(resp.Array[2].Value)
 
-	err := s.queue.leftPush(key, value)
-	if err != nil {
-		return s.reply0()
-	}
-	return s.reply1()
+	l := s.queue.pushFront(key, value)
+	return s.writeArgs(l)
 }
 
 func lpop(s *Server, resp *Resp) error {
@@ -199,14 +195,11 @@ func lpop(s *Server, resp *Resp) error {
 		return s.replyNil()
 	}
 	key := string(resp.Array[1].Value)
-	v, err := s.queue.leftPop(key)
+	val, err := s.queue.frontPop(key)
 	if err != nil {
-		if err == empty {
-			return s.replyNil()
-		}
 		return s.replyErr(err)
 	}
-	return s.writeArgs(v)
+	return s.writeArgs(val)
 }
 
 func rpush(s *Server, resp *Resp) error {
@@ -218,11 +211,8 @@ func rpush(s *Server, resp *Resp) error {
 	key := string(resp.Array[1].Value)
 	value := string(resp.Array[2].Value)
 
-	err := s.queue.rightPush(key, value)
-	if err != nil {
-		return s.reply0()
-	}
-	return s.reply1()
+	l := s.queue.pushBack(key, value)
+	return s.writeArgs(l)
 }
 
 func rpop(s *Server, resp *Resp) error {
@@ -231,14 +221,11 @@ func rpop(s *Server, resp *Resp) error {
 		return s.replyNil()
 	}
 	key := string(resp.Array[1].Value)
-	v, err := s.queue.rightPop(key)
+	val, err := s.queue.backPop(key)
 	if err != nil {
-		if err == empty {
-			return s.replyNil()
-		}
 		return s.replyErr(err)
 	}
-	return s.writeArgs(v)
+	return s.writeArgs(val)
 }
 
 func lrem(s *Server, resp *Resp) error {
@@ -246,7 +233,6 @@ func lrem(s *Server, resp *Resp) error {
 	if s.queue == nil {
 		return s.reply0()
 	}
-
 	key := string(resp.Array[1].Value)
 	s.queue.remove(key)
 	return s.reply1()
@@ -280,9 +266,8 @@ func lset(s *Server, resp *Resp) error {
 	if err != nil {
 		return s.replyErr(errInteger)
 	}
-	value := string(resp.Array[2].Value)
-
-	err = s.queue.leftSet(key, index, value)
+	value := string(resp.Array[3].Value)
+	err = s.queue.set(key, index, value)
 	if err != nil {
 		return s.reply0()
 	}

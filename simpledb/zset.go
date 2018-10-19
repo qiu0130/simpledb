@@ -1,10 +1,13 @@
 package simpledb
 
-// Zset Command
+/*
+SortedSet commands:
+zadd, zcard, zcount, zincrby, zrange, zrangebysocre, zrank, zrem, zremrangebyrank
+*/
 
 type Member struct {
 	member string
-	score float64
+	score  float64
 }
 
 type SortedSet struct {

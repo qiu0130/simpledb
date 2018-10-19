@@ -1,11 +1,11 @@
 package simpledb
 
 import (
+	"fmt"
 	"testing"
 )
 
 var client *Client
-
 
 func init() {
 	client = NewClient()
@@ -26,6 +26,8 @@ func Print(resp *Resp, err error, t *testing.T) {
 	}
 }
 
+// str test
+
 func TestClient_Set(t *testing.T) {
 	resp, err := client.Set("foo", "bar")
 	Print(resp, err, t)
@@ -36,7 +38,6 @@ func TestClient_Set(t *testing.T) {
 	resp, err = client.Set("test1", "test3")
 	Print(resp, err, t)
 }
-
 
 func TestClient_Get(t *testing.T) {
 	resp, err := client.Get("foo")
@@ -75,22 +76,49 @@ func TestClient_Append(t *testing.T) {
 }
 
 func TestClient_Delete(t *testing.T) {
-	resp, err := client.Delete([]string{"foo", "test0"})
+	resp, err := client.Delete("test1", "test2")
 	Print(resp, err, t)
 }
 
 func TestClient_MGet(t *testing.T) {
-	resp, err := client.MGet([]string{"foo", "test0"})
+	resp, err := client.MGet("foo", "test1")
 	Print(resp, err, t)
 }
 
 func TestClient_MSet(t *testing.T) {
 
 	mock := make(map[string]interface{})
-	mock["foo1"] = "1"
-	mock["test1"] = "test2"
+	mock["foo"] = "1"
+	mock["test1"] = 1000
 
 	resp, err := client.MSet(mock)
 	Print(resp, err, t)
 }
 
+// list test
+
+func TestClient_pushFront(t *testing.T) {
+
+}
+
+func TestDefaultClient(t *testing.T) {
+	var a interface{}
+	d := make(map[string]interface{})
+	d["test"] = 1
+	d["test1"] = 1
+
+	a = d
+
+	switch t := a.(type) {
+	case map[string]interface{}:
+
+		for k, v := range t {
+			fmt.Println(k, v)
+		}
+		fmt.Printf("0, %T, %v", t, t)
+		fmt.Println(len(t))
+	default:
+		fmt.Printf("1, %T, %v", t, t)
+
+	}
+}

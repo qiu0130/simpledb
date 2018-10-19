@@ -54,7 +54,7 @@ func (r *ReadBuffer) ReadLine() (RespType, []byte, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	return RespType(buf[0]), buf[1:len(buf)-2], nil
+	return RespType(buf[0]), buf[1 : len(buf)-2], nil
 }
 
 func (r *ReadBuffer) HandleStream() (*Resp, error) {
@@ -63,7 +63,7 @@ func (r *ReadBuffer) HandleStream() (*Resp, error) {
 		return nil, err
 	}
 	switch pos {
-		// +Ok\r\n
+	// +Ok\r\n
 	case TypeString:
 		return NewString(buf), nil
 		// -Error message\r\n
@@ -87,7 +87,7 @@ func (r *ReadBuffer) HandleStream() (*Resp, error) {
 		// *3\r\n:1\r\n:2\r\n:3\r\n
 	case TypeArray:
 		length, _ := strconv.Atoi(string(buf))
-		var  array []*Resp
+		var array []*Resp
 
 		for i := 0; i < length; i++ {
 			resp, err := r.HandleStream()
@@ -105,8 +105,9 @@ func (r *ReadBuffer) HandleStream() (*Resp, error) {
 }
 
 func (w *WriteBuffer) WriteArgs(args ...interface{}) (int, error) {
-	n := len(args)
-	if n == 1 {
+
+	argsLen := len(args)
+	if argsLen == 1 {
 		switch arg := args[0].(type) {
 		case int:
 			return w.WriteInt64(int64(arg))
@@ -136,22 +137,47 @@ func (w *WriteBuffer) WriteArgs(args ...interface{}) (int, error) {
 			return w.WriteError(arg)
 		case []string:
 			var total int
-			n := len(arg)
-			w.WriteArray(n)
 			for _, a := range arg {
-				i, err := w.WriteArgs(a)
+				n, err := w.WriteArgs(a)
 				if err != nil {
 					return 0, err
 				}
-				total += i
+				total += n
+			}
+			return total, nil
+		case map[string]interface{}:
+			var total int
+			for k, v := range arg {
+				n, err := w.WriteArgs(k)
+				if err != nil {
+					return 0, err
+				}
+				total += n
+				n, err = w.WriteArgs(v)
+				if err != nil {
+					return 0, err
+				}
+				total += n
 			}
 			return total, nil
 		default:
 			return 0, fmt.Errorf("args invalid type")
 		}
-	} else if n > 1 {
-		var total int
-		w.WriteArray(n)
+	} else if argsLen > 1 {
+		var total, num int
+		for _, arg := range args {
+			switch t := arg.(type) {
+			case []string:
+				num += len(t)
+			case []byte:
+				num += len(t)
+			case map[string]interface{}:
+				num += len(t) * 2
+			default:
+				num += 1
+			}
+		}
+		w.WriteArray(num)
 		for _, arg := range args {
 			n, err := w.WriteArgs(arg)
 			if err != nil {

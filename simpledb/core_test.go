@@ -6,4 +6,3 @@ func TestNewServer(t *testing.T) {
 	server := NewServer()
 	server.Run()
 }
-

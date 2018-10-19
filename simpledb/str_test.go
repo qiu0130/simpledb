@@ -4,9 +4,7 @@ import (
 	"testing"
 )
 
-
 var d *Dict
-
 
 func init() {
 	d = newDict()
@@ -36,8 +34,4 @@ func TestDict(t *testing.T) {
 	size = d.size()
 	t.Logf("size: %d, expected: 3", size)
 
-
-
 }
-
-

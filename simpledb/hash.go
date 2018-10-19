@@ -5,9 +5,9 @@ package simpledb
 Hash commands:
 	hel, hexists, hget, hincrby, hkeys, hlen, hmget, hsmet, hset, hsetnx, hvals
 
- */
+*/
 type Hash struct {
-	key string
+	key   string
 	filed map[string]string
 }
 
@@ -24,13 +24,10 @@ func getFiled(hash []*Hash, key string) (map[string]string, error) {
 	return nil, empty
 }
 
-
 func hDel(s *Server, resp *Resp) error {
-
 	if s.hash == nil {
 		return s.reply0()
 	}
-
 	key := string(resp.Array[1].Value)
 	for _, f := range resp.Array[1:] {
 		filed, err := getFiled(s.hash, key)
@@ -85,7 +82,7 @@ func hSet(s *Server, resp *Resp) error {
 
 	h := make(map[string]string)
 	h[field] = value
-	s.hash = append(s.hash, &Hash{key:key, filed: h})
+	s.hash = append(s.hash, &Hash{key: key, filed: h})
 	return s.reply1()
 }
 

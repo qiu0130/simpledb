@@ -1,35 +1,32 @@
 package simpledb
 
 import (
-	"testing"
-	"errors"
-	"bytes"
 	"bufio"
+	"bytes"
+	"errors"
+	"testing"
 )
 
 var (
 	wb  *WriteBuffer
- 	rb  *ReadBuffer
- 	buf bytes.Buffer
- )
-
+	rb  *ReadBuffer
+	buf bytes.Buffer
+)
 
 func init() {
-	wb =  &WriteBuffer{}
+	wb = &WriteBuffer{}
 	wb.buf = bufio.NewWriter(&buf)
 
 	rb = &ReadBuffer{}
-
 	rb.buf = bufio.NewReader(&buf)
-
 }
 
 func TestWriteBuffer_WriteInt64(t *testing.T) {
 
-	var tests = []struct{
-		i int64
+	var tests = []struct {
+		i    int64
 		want string
-	} {
+	}{
 		{100, ":100\r\n"},
 		{200, ":200\r\n"},
 		{100000, ":100000\r\n"},
@@ -48,10 +45,10 @@ func TestWriteBuffer_WriteInt64(t *testing.T) {
 }
 
 func TestWriteBuffer_WriteFloat64(t *testing.T) {
-	var tests = []struct{
-		i float64
+	var tests = []struct {
+		i    float64
 		want string
-	} {
+	}{
 		{10.11, ":10.110000\r\n"},
 		{20.11, ":20.110000\r\n"},
 		{100.001, ":100.001000\r\n"},
@@ -71,10 +68,10 @@ func TestWriteBuffer_WriteFloat64(t *testing.T) {
 }
 
 func TestWriteBuffer_WriteError(t *testing.T) {
-	var tests = []struct{
-		err error
+	var tests = []struct {
+		err  error
 		want string
-	} {
+	}{
 		{errors.New("test"), "-test\r\n"},
 		{errors.New("fail"), "-fail\r\n"},
 	}
@@ -92,10 +89,10 @@ func TestWriteBuffer_WriteError(t *testing.T) {
 }
 
 func TestWriteBuffer_WriteString(t *testing.T) {
-	var tests = []struct{
-		str string
+	var tests = []struct {
+		str  string
 		want string
-	} {
+	}{
 		{"test", "+test\r\n"},
 		{"xxxxxxxxxxx", "+xxxxxxxxxxx\r\n"},
 	}
@@ -114,10 +111,10 @@ func TestWriteBuffer_WriteString(t *testing.T) {
 }
 
 func TestWriteBuffer_WriteArray(t *testing.T) {
-	var tests = []struct{
-		i int
+	var tests = []struct {
+		i    int
 		want string
-	} {
+	}{
 		{1, "*1\r\n"},
 		{100, "*10r\n"},
 	}
@@ -135,10 +132,10 @@ func TestWriteBuffer_WriteArray(t *testing.T) {
 }
 
 func TestWriteBuffer_WriteBulkString(t *testing.T) {
-	var tests = []struct{
-		str string
+	var tests = []struct {
+		str  string
 		want string
-	} {
+	}{
 		{"ok", "$2\r\nok\r\n"},
 		{"xxx", "$3\r\nxxx\r\n"},
 	}
@@ -159,10 +156,10 @@ func TestWriteBuffer_WriteBulkString(t *testing.T) {
 
 func TestWriteBuffer_WriteArgs(t *testing.T) {
 
-	var tests = []struct{
+	var tests = []struct {
 		args interface{}
 		want string
-	} {
+	}{
 		{int(1), ":1\r\n"},
 		{int64(10), ":10\r\n"},
 
@@ -175,7 +172,7 @@ func TestWriteBuffer_WriteArgs(t *testing.T) {
 
 		{[]byte("yes"), "+yes\r\n"},
 		{[]byte("xxxxx"), "$5\r\nxxxxx\r\n"},
-
+		//{[]string(), "*2\r\n$3\r\nfoo\r\n$3\r\nbar\r\n"},
 	}
 
 	for _, test := range tests {
@@ -199,25 +196,22 @@ func TestWriteBuffer_WriteArgs(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	} else {
-		t.Logf("1 100 ok, xxxxx, yyyyy; %q, %q, %v",  want, string(p[:n]), want == string(p[:n]))
+		t.Logf("1 100 ok, xxxxx, yyyyy; %q, %q, %v", want, string(p[:n]), want == string(p[:n]))
 	}
-
 
 }
 
-
 func TestReadBuffer_ReadLine(t *testing.T) {
-
 
 	var tests = []struct {
 		data string
 		want string
-	} {
+	}{
 		{
-		":100\r\n", "100"	,
+			":100\r\n", "100",
 		},
 		{
-			"+ok\r\n", "ok"	,
+			"+ok\r\n", "ok",
 		},
 		{
 			"$5\r\n", "5",
@@ -239,12 +233,12 @@ func TestReadBuffer_HandleStream(t *testing.T) {
 	var tests = []struct {
 		data string
 		want string
-	} {
+	}{
 		{
-			":100\r\n", "100"	,
+			":100\r\n", "100",
 		},
 		{
-			"+ok\r\n", "ok"	,
+			"+ok\r\n", "ok",
 		},
 		{
 			"$5\r\nxxxxx\r\n", "xxxxx",
@@ -252,7 +246,6 @@ func TestReadBuffer_HandleStream(t *testing.T) {
 		{
 			"*2\r\n+ok\r\n:100\r\n", "ok",
 		},
-
 	}
 	for _, test := range tests {
 		buf.WriteString(test.data)
@@ -272,4 +265,3 @@ func TestReadBuffer_HandleStream(t *testing.T) {
 		}
 	}
 }
-

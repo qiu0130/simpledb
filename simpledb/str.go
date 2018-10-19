@@ -1,9 +1,8 @@
 package simpledb
 
 import (
-	"sync"
 	"strconv"
-	"fmt"
+	"sync"
 )
 
 /*
@@ -25,7 +24,7 @@ K/V commands:
 	//msetex
 	len
 	flush
- */
+*/
 
 type Dict struct {
 	mu    sync.RWMutex
@@ -67,7 +66,7 @@ func (d *Dict) get(k string) (interface{}, error) {
 	return nil, empty
 }
 
-func (d *Dict) getInt64(k string) (int64,  error) {
+func (d *Dict) getInt64(k string) (int64, error) {
 	val, err := d.get(k)
 	if err != nil {
 		return 0, nil
@@ -81,7 +80,6 @@ func (d *Dict) getInt64(k string) (int64,  error) {
 	}
 	return 0, errInteger
 }
-
 
 func set(s *Server, resp *Resp) error {
 	if s.dict == nil {
@@ -112,10 +110,9 @@ func get(s *Server, resp *Resp) error {
 	return s.writeArgs(strValue)
 }
 
-
 func decrease(s *Server, resp *Resp) error {
 	var (
-		v int64
+		v   int64
 		err error
 	)
 	if s.dict == nil {
@@ -133,7 +130,7 @@ func decrease(s *Server, resp *Resp) error {
 
 func decreaseBy(s *Server, resp *Resp) error {
 	var (
-		v int64
+		v   int64
 		err error
 	)
 	if s.dict == nil {
@@ -155,7 +152,7 @@ func decreaseBy(s *Server, resp *Resp) error {
 
 func increase(s *Server, resp *Resp) error {
 	var (
-		v int64
+		v   int64
 		err error
 	)
 	if s.dict == nil {
@@ -173,7 +170,7 @@ func increase(s *Server, resp *Resp) error {
 
 func increaseBy(s *Server, resp *Resp) error {
 	var (
-		v int64
+		v   int64
 		err error
 	)
 	if s.dict == nil {
@@ -219,12 +216,7 @@ func deletes(s *Server, resp *Resp) error {
 	if s.dict == nil {
 		s.dict = newDict()
 	}
-	for _, args := range resp.Array {
-		fmt.Println(string(args.Value))
-	}
-
 	for _, args := range resp.Array[1:] {
-		fmt.Println(string(args.Value))
 		err := s.dict.delete(string(args.Value))
 		if err != nil {
 			return s.replyErr(err)
@@ -263,16 +255,23 @@ func multipleGet(s *Server, resp *Resp) error {
 	if s.dict == nil {
 		s.dict = newDict()
 	}
-	for _, args := range resp.Array[1:] {
-		v, err := s.dict.get(string(args.Value))
+	var res []string
+	for i, args := range resp.Array[1:] {
+		val, err := s.dict.get(string(args.Value))
+		index := strconv.Itoa(i) + ") "
 		if err != nil {
-			s.wb.WriteArgs(nil)
-		}
-		_, err = s.wb.WriteArgs(v)
-		if err != nil {
-			return s.replyErr(err)
+			res = append(res, index+"nil")
+		} else {
+			v, ok := val.(string)
+			if ok {
+				res = append(res, index+v)
+			} else {
+				res = append(res, index+"nil")
+			}
 		}
 	}
-	return s.replyOk()
+	if len(res) > 0 {
+		return s.writeArgs(res[0], res[1:])
+	}
+	return s.writeArgs("nil")
 }
-

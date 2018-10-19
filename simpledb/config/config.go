@@ -1,11 +1,12 @@
 package config
 
 import (
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"fmt"
 	"time"
 )
+
 const (
 	defaultConfigPath = "/Users/cowboy/golang/src/simpledb/simpledb/config/config.yaml"
 	//defaultConfigPath = "/home/qiu/gopath/src/simpledb/simpledb/config/config.yaml"
@@ -13,28 +14,27 @@ const (
 
 type Config struct {
 	Server struct {
-		Host              string        `yaml:"host"`
-		Port              int           `yaml:"port"`
-		ReadTimeout       time.Duration `yaml:"read_timeout"`
-		WriteTimeout      time.Duration `yaml:"write_timeout"`
+		Host           string        `yaml:"host"`
+		Port           int           `yaml:"port"`
+		ReadTimeout    time.Duration `yaml:"read_timeout"`
+		WriteTimeout   time.Duration `yaml:"write_timeout"`
 		ConnectTimeout time.Duration `yaml:"connect_timeout"`
 	} `yaml:"server"`
 
 	Client struct {
-		Host              string        `yaml:"host"`
-		Port              int           `yaml:"port"`
-		ReadTimeout       time.Duration `yaml:"read_timeout"`
-		WriteTimeout      time.Duration `yaml:"write_timeout"`
+		Host           string        `yaml:"host"`
+		Port           int           `yaml:"port"`
+		ReadTimeout    time.Duration `yaml:"read_timeout"`
+		WriteTimeout   time.Duration `yaml:"write_timeout"`
 		ConnectTimeout time.Duration `yaml:"connect_timeout"`
 	} `yaml:"client"`
-
 }
 
 func NewConfig(path ...string) (*Config, error) {
 
 	var (
 		curPath string
-		config Config
+		config  Config
 	)
 	if len(path) == 0 {
 		curPath = defaultConfigPath

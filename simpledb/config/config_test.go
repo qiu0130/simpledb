@@ -4,11 +4,11 @@ import "testing"
 
 func TestNewConfig(t *testing.T) {
 
-	var tests = []struct{
+	var tests = []struct {
 		path string
 		want string
 	}{
-		{path:"", want: "open : no such file or directory"},
+		{path: "", want: "open : no such file or directory"},
 		{path: "xxx", want: "open xxx: no such file or directory"},
 		{path: "/home/qiu/Projects/simpledb/config/config.yaml", want: ""},
 		{path: "/home/qiu/gopath/src/simpledb/simpledb/config/config.yaml", want: ""},
@@ -23,4 +23,3 @@ func TestNewConfig(t *testing.T) {
 		}
 	}
 }
-

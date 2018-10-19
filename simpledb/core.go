@@ -1,13 +1,13 @@
 package simpledb
 
 import (
-	"errors"
-	"simpledb/simpledb/config"
-	"net"
-	"time"
-	"log"
-	"fmt"
 	"bufio"
+	"errors"
+	"fmt"
+	"log"
+	"net"
+	"simpledb/simpledb/config"
+	"time"
 )
 
 /*
@@ -38,45 +38,40 @@ SortedSet commands:
 Misc:
 	expire, info, flush_all, save_to_disk, restore_from_disk, merge_from_disk, client_quit, shutdown
 
- */
+*/
 
 var (
-
-	empty = errors.New("ERR value is empty")
-	errStr = errors.New("ERR value not a string")
+	empty      = errors.New("ERR value is empty")
+	errStr     = errors.New("ERR value not a string")
 	errInteger = errors.New("ERR value not a integer or out of range")
-
 )
 var serverConfig *config.Config
 
 const (
-	defaultDictSize = 1024
-	defaultHashSize = 1024
+	defaultDictSize      = 1024
+	defaultHashSize      = 1024
 	defaultSortedSetSize = 1024
-	defaultQueueSize = 1024
+	defaultQueueSize     = 1024
 )
-
-
 
 type Server struct {
 	conn    net.Conn
 	command *Command
 	dict    *Dict
-	hash []*Hash
-	queue *Queue
+	hash    []*Hash
+	queue   *Queue
 
 	ConnectTimeout time.Duration
-	readTimeout   time.Duration
-	writeTimeout  time.Duration
+	readTimeout    time.Duration
+	writeTimeout   time.Duration
 
-	rb   *ReadBuffer
-	wb   *WriteBuffer
+	rb     *ReadBuffer
+	wb     *WriteBuffer
 	aofBuf *WriteBuffer
-	file string
-	host string
-	port int
+	file   string
+	host   string
+	port   int
 }
-
 
 func init() {
 	var err error
@@ -86,15 +81,14 @@ func init() {
 	}
 }
 
-
 func NewServer() *Server {
 
 	return &Server{
-		host: serverConfig.Server.Host,
-		port: serverConfig.Server.Port,
+		host:           serverConfig.Server.Host,
+		port:           serverConfig.Server.Port,
 		ConnectTimeout: serverConfig.Server.ConnectTimeout,
-		readTimeout: serverConfig.Server.ReadTimeout,
-		writeTimeout: serverConfig.Server.WriteTimeout,
+		readTimeout:    serverConfig.Server.ReadTimeout,
+		writeTimeout:   serverConfig.Server.WriteTimeout,
 	}
 }
 
@@ -127,8 +121,8 @@ func (s *Server) listen() error {
 			if s.readTimeout == 0 {
 				s.writeTimeout = defaultTimeout
 			}
-			conn.SetWriteDeadline(time.Now().Add(s.writeTimeout*time.Second))
-			conn.SetReadDeadline(time.Now().Add(s.readTimeout*time.Second))
+			conn.SetWriteDeadline(time.Now().Add(s.writeTimeout * time.Second))
+			conn.SetReadDeadline(time.Now().Add(s.readTimeout * time.Second))
 			s.rb = &ReadBuffer{bufio.NewReader(conn), s.readTimeout}
 			s.wb = &WriteBuffer{bufio.NewWriter(conn), s.writeTimeout}
 			s.conn = conn
@@ -213,7 +207,6 @@ func (s *Server) reply1() (err error) {
 	return
 }
 
-
 func (s *Server) replyNil() (err error) {
 	_, err = s.wb.WriteString("nil")
 	if err != nil {
@@ -238,7 +231,6 @@ func (s *Server) replyErr(errs error) (err error) {
 	return
 }
 
-
 func (s *Server) flush() (err error) {
 	return s.wb.Flush()
 }
@@ -246,6 +238,7 @@ func (s *Server) flush() (err error) {
 func (s *Server) appendFile() {
 
 }
+
 //func (s *Server) rewrite() (err error) {
 //
 //}
@@ -253,6 +246,3 @@ func (s *Server) appendFile() {
 //func (s *Server) serverConn (err error) {
 //
 //}
-
-
-
