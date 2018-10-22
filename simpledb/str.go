@@ -5,62 +5,48 @@ import (
 	"sync"
 )
 
-/*
-K/V commands:
-	append
-	decr
-	decrby
-	incr
-	incrby
-    mdelete
-	mget
-    mset
-	get
-	set
-	del
-	exists
-	//setnx
-	//setex
-	//msetex
-	len
-	flush
-*/
+// str commands:
+// append, decr, decrby, incr, incrby, mdelete, mget, mset, get, set, del, exists, len, flush
+
+// setnx
+// setex
+// msetex
 
 type Dict struct {
-	mu    sync.RWMutex
-	value map[string]interface{}
+	mu   sync.RWMutex
+	data map[string]interface{}
 }
 
 func newDict() *Dict {
 	return &Dict{
-		mu:    sync.RWMutex{},
-		value: make(map[string]interface{}, defaultDictSize),
+		mu:   sync.RWMutex{},
+		data: make(map[string]interface{}, defaultDictSize),
 	}
 }
 
 func (d *Dict) delete(k string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	delete(d.value, k)
+	delete(d.data, k)
 	return nil
 }
 
 func (d *Dict) size() int {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	return len(d.value)
+	return len(d.data)
 }
 
 func (d *Dict) add(k string, args interface{}) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	d.value[k] = args
+	d.data[k] = args
 }
 
 func (d *Dict) get(k string) (interface{}, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if v, ok := d.value[k]; ok {
+	if v, ok := d.data[k]; ok {
 		return v, nil
 	}
 	return nil, empty

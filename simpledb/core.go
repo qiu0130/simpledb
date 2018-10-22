@@ -52,7 +52,7 @@ const (
 	defaultHashSize      = 1024
 	defaultSortedSetSize = 1024
 	defaultQueueSize     = 1024
-	defaultSetSize = 1024
+	defaultSetSize       = 1024
 )
 
 type Server struct {
@@ -61,7 +61,8 @@ type Server struct {
 	dict    *Dict
 	hash    []*Hash
 	queue   *Queue
-	set *Set
+	set     *Set
+	zSet    *SortedSet
 
 	ConnectTimeout time.Duration
 	readTimeout    time.Duration

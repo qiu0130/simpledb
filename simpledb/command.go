@@ -45,15 +45,15 @@ func init() {
 	register("MGET", 2, 1, 'w', multipleGet)
 
 	// list command
-	register("LLEN", 1, 1, 'r', llen)
-	register("LPUSH", 1, 1, 'r', lpush)
-	register("LPOP", 1, 1, 'r', lpop)
-	register("RPUSH", 1, 1, 'r', rpush)
-	register("RPOP", 1, 1, 'r', rpop)
-	register("LREM", 1, 1, 'r', lrem)
-	register("LINDEX", 1, 1, 'r', lindex)
-	register("LSET", 1, 1, 'r', lset)
-	register("LRANGE", 1, 1, 'r', lrange)
+	register("LLEN", 1, 1, 'r', lLen)
+	register("LPUSH", 1, 1, 'r', lPush)
+	register("LPOP", 1, 1, 'r', lPop)
+	register("RPUSH", 1, 1, 'r', rPush)
+	register("RPOP", 1, 1, 'r', rPop)
+	register("LREM", 1, 1, 'r', lRem)
+	register("LINDEX", 1, 1, 'r', lIndex)
+	register("LSET", 1, 1, 'r', lSet)
+	register("LRANGE", 1, 1, 'r', lRange)
 
 	// hash command
 	register("HDEL", 3, 1, 'w', hDel)
@@ -64,8 +64,31 @@ func init() {
 	register("HKEYS", 2, 1, 'r', hKeys)
 	register("HVALS", 2, 1, 'r', hVals)
 	register("HLEN", 2, 1, 'r', hLen)
-	register("HMGET", 3, 1, 'r', hMget)
+	register("HMGET", 3, 1, 'r', hMGet)
 	register("HMESET", 3, 1, 'w', hMSet)
+
+	// set command
+	register("SADD", 3, 1, 'w', sAdd)
+	register("SCARD", 2, 1, 'r', sCard)
+	register("SDIFF", 3, 1, 'r', sDiff)
+	register("SDIFFSCORE", 3, 1, 'r', sDiffScore)
+	register("SINTER", 3, 1, 'r', sInter)
+	register("SINTERSCORE", 3, 1, 'r', sInterScore)
+	register("SUNION", 3, 1, 'r', sUnion)
+	register("SUNIONSCORE", 3, 1, 'w', sUnionScore)
+	register("SISMEMBER", 3, 1, 'r', sIsMember)
+	register("SMEMBERS", 2, 1, 'r', sMembers)
+	register("SREM", 3, 1, 'w', sRem)
+
+	// sorted set command
+	register("ZADD", 4, 1, 'w', zAdd)
+	register("ZCARD", 2, 1, 'r', zCard)
+	register("ZROUNT", 4, 1, 'r', zCount)
+	register("ZINCRBY", 4, 1, 'w', zIncrementBy)
+	register("ZRANGE", 4, 1, 'r', zRange)
+	register("ZRANGEBYSCORE", 4, 1, 'r', zRangeByScore)
+	register("ZRANK", 3, 1, 'r', zRank)
+	register("ZREM", 3, 1, 'w', zRem)
 
 }
 

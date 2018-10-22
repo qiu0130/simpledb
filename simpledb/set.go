@@ -2,26 +2,24 @@ package simpledb
 
 import "sync"
 
-/*
-Set commands:
-sadd, scard, sdiff, sdiffstore, sinter, sinterstore, sismenber, smembers, srem, sunion, sunionstore
-*/
+// set commands:
+// sadd, scard, sdiff, sdiffstore, sinter, sinterstore, sismenber, smembers, srem, sunion, sunionstore
 
-type member struct {
-	val map[string]struct{}
+type sMember struct {
+	val map[string]interface{}
 }
 
 type Set struct {
-	value map[string]*member
-	len   int
-	mu sync.RWMutex
+	data map[string]*sMember
+	len  int
+	mu   sync.RWMutex
 }
 
 func newSet() *Set {
 	return &Set{
-		value: make(map[string]*member, defaultSetSize),
-		len: 0,
-		mu: sync.RWMutex{},
+		data: make(map[string]*sMember, defaultSetSize),
+		len:  0,
+		mu:   sync.RWMutex{},
 	}
 }
 
@@ -30,31 +28,40 @@ func (s *Set) add(key string, members ...string) int {
 	defer s.mu.Unlock()
 
 	for _, member := range members {
-		if v, ok := s.value[key]; ok {
-			v.val[member] = struct{}{}
+		if _, ok := s.data[key]; ok {
+			s.data[key].val[member] = nil
 		} else {
-			m := make(map[string]struct{})
-			m[member] = struct{}{}
-			s.value[key] = &member{val: m}
+			m := make(map[string]interface{})
+			m[member] = nil
+			s.data[key] = &sMember{val: m}
 		}
 	}
-	s.len = len(members)
+	s.len = len(s.data)
 	return s.len
 }
 
 func (s *Set) card(key string) int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.len
+
+	if _, ok := s.data[key]; ok {
+		return len(s.data[key].val)
+	}
+	return 0
 }
 
-func (s *Set) diff(key0, key1 string) map[string]struct{} {
-	diffMap := make(map[string]struct{})
+func (s *Set) diff(key0, key1 string) []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	if _, ok := s.value[key0]; ok {
-		for k, v := range s.value[key0].val {
-			if _, ok := s.value[key1]; ok {
-				if _, ok := s.value[key1].val[k]; !ok {
+	var (
+		list []string
+	)
+	diffMap := make(map[string]interface{})
+	if _, ok := s.data[key0]; ok {
+		for k, v := range s.data[key0].val {
+			if _, ok := s.data[key1]; ok {
+				if _, ok := s.data[key1].val[k]; !ok {
 					diffMap[k] = v
 				}
 			} else {
@@ -62,76 +69,105 @@ func (s *Set) diff(key0, key1 string) map[string]struct{} {
 			}
 		}
 	}
-	return diffMap
+
+	for k, _ := range diffMap {
+		list = append(list, k)
+	}
+	return list
 }
 
-func (s *Set) inter(key0, key1 string) map[string]struct{} {
-	interMap := make(map[string]struct{})
+func (s *Set) inter(key0, key1 string) []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	if _, ok := s.value[key0]; ok {
-		for k, v := range s.value[key0].val {
-			if _, ok := s.value[key1]; ok {
-				if _, ok := s.value[key1].val[k]; ok {
+	var (
+		list []string
+	)
+
+	interMap := make(map[string]interface{})
+	if _, ok := s.data[key0]; ok {
+		for k, v := range s.data[key0].val {
+			if _, ok := s.data[key1]; ok {
+				if _, ok := s.data[key1].val[k]; ok {
 					interMap[k] = v
 				}
 			}
 		}
 	}
-	return interMap
+	for k, _ := range interMap {
+		list = append(list, k)
+	}
+	return list
 }
 
-func (s *Set) union(key0, key1 string) map[string]struct{} {
+func (s *Set) union(key0, key1 string) []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	unionMap := make(map[string]struct{})
-	if _, ok := s.value[key0]; ok {
-		for k, v := range s.value[key0].val {
-			unionMap[k] = v
-       }
-    }
-
-	if _, ok := s.value[key1]; ok {
-		for k, v := range s.value[key1].val {
+	var (
+		list []string
+	)
+	unionMap := make(map[string]interface{})
+	if _, ok := s.data[key0]; ok {
+		for k, v := range s.data[key0].val {
 			unionMap[k] = v
 		}
 	}
-	return unionMap
+
+	if _, ok := s.data[key1]; ok {
+		for k, v := range s.data[key1].val {
+			unionMap[k] = v
+		}
+	}
+
+	for k, _ := range unionMap {
+		list = append(list, k)
+	}
+	return list
 }
 
-func (s *Set) sismember(key string, member string) bool {
+func (s *Set) sIsMember(key string, member string) bool {
 
-	if _, ok := s.value[key]; ok {
-		if _, ok := s.value[key].val[member]; ok {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.data[key]; ok {
+		if _, ok := s.data[key].val[member]; ok {
 			return true
 		}
 	}
 	return false
 }
 
+func (s *Set) sMembers(key string) []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-func (s *Set) smembers(key string) []string {
 	var (
 		members []string
 	)
-	if _, ok := s.value[key]; ok {
-		for k, _ := range s.value[key].val {
+	if _, ok := s.data[key]; ok {
+		for k, _ := range s.data[key].val {
 			members = append(members, k)
 		}
 	}
 	return members
 }
 
-func (s *Set) srem(key, member string) bool {
-	if _, ok := s.value[key]; ok {
-		if _, ok := s.value[key].val[member]; ok {
-			delete(s.value[key].val, member)
+func (s *Set) sRem(key, member string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.data[key]; ok {
+		if _, ok := s.data[key].val[member]; ok {
+			delete(s.data[key].val, member)
 			return true
 		}
 	}
 	return false
 }
 
+func sAdd(s *Server, resp *Resp) error {
 
-func sadd(s *Server, resp *Resp) error {
 	if s.set == nil {
 		s.set = newSet()
 	}
@@ -141,23 +177,22 @@ func sadd(s *Server, resp *Resp) error {
 	)
 	key := string(resp.Array[1].Value)
 	for _, member := range resp.Array[1:] {
-
 		members = append(members, string(member.Value))
 	}
-	s.set.add(key, members...)
-	return s.replyOk()
+	size := s.set.add(key, members...)
+	return s.writeArgs(size)
 }
 
-func scard(s *Server, resp *Resp) error {
+func sCard(s *Server, resp *Resp) error {
 	if s.set == nil {
 		s.set = newSet()
 	}
 	key := string(resp.Array[1].Value)
-	card := s.set.card(key)
-	return s.writeArgs(card)
+	size := s.set.card(key)
+	return s.writeArgs(size)
 }
 
-func sdiff(s *Server, resp *Resp) error {
+func sDiff(s *Server, resp *Resp) error {
 
 	if s.set == nil {
 		s.set = newSet()
@@ -169,7 +204,7 @@ func sdiff(s *Server, resp *Resp) error {
 	return s.writeArgs(result)
 }
 
-func sdiffscore(s *Server, resp *Resp) error {
+func sDiffScore(s *Server, resp *Resp) error {
 
 	if s.set == nil {
 		s.set = newSet()
@@ -181,7 +216,7 @@ func sdiffscore(s *Server, resp *Resp) error {
 	return s.writeArgs(len(result))
 }
 
-func sinter(s *Server, resp *Resp) error {
+func sInter(s *Server, resp *Resp) error {
 	if s.set == nil {
 		s.set = newSet()
 	}
@@ -192,7 +227,7 @@ func sinter(s *Server, resp *Resp) error {
 	return s.writeArgs(result)
 }
 
-func sinterscore(s *Server, resp *Resp) error {
+func sInterScore(s *Server, resp *Resp) error {
 	if s.set == nil {
 		s.set = newSet()
 	}
@@ -203,8 +238,7 @@ func sinterscore(s *Server, resp *Resp) error {
 	return s.writeArgs(len(result))
 }
 
-
-func sunion(s *Server, resp *Resp) error {
+func sUnion(s *Server, resp *Resp) error {
 	if s.set == nil {
 		s.set = newSet()
 	}
@@ -215,7 +249,7 @@ func sunion(s *Server, resp *Resp) error {
 	return s.writeArgs(result)
 }
 
-func sunionscore(s *Server, resp *Resp) error {
+func sUnionScore(s *Server, resp *Resp) error {
 	if s.set == nil {
 		s.set = newSet()
 	}
@@ -226,35 +260,34 @@ func sunionscore(s *Server, resp *Resp) error {
 	return s.writeArgs(len(result))
 }
 
-func sismember(s *Server, resp *Resp) error {
+func sIsMember(s *Server, resp *Resp) error {
 	if s.set == nil {
 		s.set = newSet()
 	}
 	key := string(resp.Array[1].Value)
 	member := string(resp.Array[2].Value)
 
-	result := s.set.sismember(key, member)
+	result := s.set.sIsMember(key, member)
 	return s.writeArgs(result)
 }
 
-func smembers(s *Server, resp *Resp) error {
+func sMembers(s *Server, resp *Resp) error {
 	if s.set == nil {
 		s.set = newSet()
 	}
 	key := string(resp.Array[1].Value)
 
-	result := s.set.smembers(key)
+	result := s.set.sMembers(key)
 	return s.writeArgs(result)
 }
 
-
-func srem(s *Server, resp *Resp) error {
+func sRem(s *Server, resp *Resp) error {
 	if s.set == nil {
 		s.set = newSet()
 	}
 	key := string(resp.Array[1].Value)
 	member := string(resp.Array[2].Value)
 
-	result := s.set.srem(key, member)
+	result := s.set.sRem(key, member)
 	return s.writeArgs(result)
 }

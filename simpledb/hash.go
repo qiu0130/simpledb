@@ -1,11 +1,8 @@
 package simpledb
 
-/*
+// hash commands:
+// hel, hexists, hget, hincrby, hkeys, hlen, hmget, hsmet, hset, hsetnx, hvals
 
-Hash commands:
-	hel, hexists, hget, hincrby, hkeys, hlen, hmget, hsmet, hset, hsetnx, hvals
-
-*/
 type Hash struct {
 	key   string
 	filed map[string]string
@@ -150,7 +147,7 @@ func hLen(s *Server, resp *Resp) error {
 	return s.writeArgs(len(fields))
 }
 
-func hMget(s *Server, resp *Resp) error {
+func hMGet(s *Server, resp *Resp) error {
 	if s.hash == nil {
 		return s.replyNil()
 	}
